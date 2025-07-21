@@ -5,12 +5,12 @@ import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBb9GgrLLCdrow-nU4P7a69PoRS7lP9yEk",
-  authDomain: "zero-waste-test-submit.firebaseapp.com",
-  projectId: "zero-waste-test-submit",
-  storageBucket: "zero-waste-test-submit.firebasestorage.app",
-  messagingSenderId: "836158770612",
-  appId: "1:836158770612:web:388dd02c9ef8d82811f6e1"
+  apiKey: "AIzaSyBtNSCDu7RWFChH6KMFFFlXC4cNoA_duZo",
+  authDomain: "global-zero-waste-forum.firebaseapp.com",
+  projectId: "global-zero-waste-forum",
+  storageBucket: "global-zero-waste-forum.firebasestorage.app",
+  messagingSenderId: "719673367171",
+  appId: "1:719673367171:web:fbec96432425bcdc2599b6"
 };
 
 // Initialize Firebase

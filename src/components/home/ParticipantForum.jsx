@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import Field from "../common/Field";
 import { motion } from "framer-motion";
+import emailjs from "@emailjs/browser";
 
 const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const [formData, setFormData] = useState({
@@ -21,7 +22,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     organizationCountry: "",
     jobTitle: "",
     organizationType: "",
-    participationDay: "",
+    selectedDays: [],
     participantType: "Participant",
     photo: null,
     termsAccepted: false,
@@ -30,12 +31,25 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const eventDays = ["October 17", "October 18", "October 19"];
+
   const handleChange = (e) => {
     const { name, value, files, type, checked } = e.target;
     if (name === "photo") {
       const file = files[0];
       setFormData((prev) => ({ ...prev, photo: file }));
       setPreview(URL.createObjectURL(file));
+    } else if (type === "checkbox" && name === "selectedDays") {
+      setFormData((prev) => {
+        if (checked) {
+          return { ...prev, selectedDays: [...prev.selectedDays, value] };
+        } else {
+          return {
+            ...prev,
+            selectedDays: prev.selectedDays.filter((day) => day !== value),
+          };
+        }
+      });
     } else if (type === "checkbox") {
       setFormData((prev) => ({ ...prev, [name]: checked }));
     } else {
@@ -43,34 +57,53 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     }
   };
 
+  const sendConfirmationEmail = async ({
+    name,
+    email,
+    title,
+    organization,
+    participationDay,
+  }) => {
+    try {
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          name,
+          email,
+          title,
+          organization,
+          participationDay,
+        },
+        import.meta.env.VITE_EMAILJS_USER_ID
+      );
+      console.log("✅ Confirmation email sent");
+    } catch (err) {
+      console.error("❌ Failed to send confirmation email", err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.photo) {
-      toast.error("Please upload a profile photo.");
-      return;
-    }
-
-    if (!formData.countryCode) {
-      toast.error("Please select a country code.");
-      return;
-    }
-
-    if (!formData.participantType) {
-      toast.error("Please select participant type.");
-      return;
-    }
-
-    if (!formData.termsAccepted) {
-      toast.error("You must accept the terms and conditions.");
-      return;
-    }
+    if (!formData.photo) return toast.error("Please upload a profile photo.");
+    if (!formData.countryCode)
+      return toast.error("Please select a country code.");
+    if (!formData.participantType)
+      return toast.error("Please select participant type.");
+    if (!formData.termsAccepted)
+      return toast.error("You must accept the terms and conditions.");
+    if (!formData.selectedDays.length)
+      return toast.error("Please select at least one day.");
 
     setLoading(true);
     const toastId = toast.loading("Submitting your application...");
 
     try {
-      const imageRef = ref(storage, `photos/${Date.now()}-${formData.photo.name}`);
+      const imageRef = ref(
+        storage,
+        `photos/${Date.now()}-${formData.photo.name}`
+      );
       await uploadBytes(imageRef, formData.photo);
       const photoUrl = await getDownloadURL(imageRef);
 
@@ -87,6 +120,15 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
       delete userData.termsAccepted;
 
       await addDoc(collection(db, "participant"), userData);
+
+      await sendConfirmationEmail({
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        title: formData.jobTitle,
+        organization: formData.organization,
+        participationDay: formData.selectedDays.join(", "),
+      });
+
       toast.success("Application submitted successfully!", { id: toastId });
       setIsSubmitted(true);
       setFormData({
@@ -101,7 +143,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
         organizationCountry: "",
         jobTitle: "",
         organizationType: "",
-        participationDay: "",
+        selectedDays: [],
         participantType: "Participant",
         photo: null,
         termsAccepted: false,
@@ -125,26 +167,50 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
         ease: "easeOut",
         scale: { type: "spring", stiffness: 300, damping: 20 },
       }}
-      className={`max-w-4xl mx-auto px-4 py-10 bg-white rounded-xl shadow-md ${isSubmitted ? "hidden" :"block"}`}
+      className={`max-w-4xl mx-auto px-4 py-10 bg-white rounded-xl shadow-md ${
+        isSubmitted ? "hidden" : "block"
+      }`}
     >
-      {isSubmitted ? (
-        null
-      ) : (
+      {!isSubmitted && (
         <form
           onSubmit={handleSubmit}
-          className={`grid grid-cols-1 md:grid-cols-2 gap-6 transition-all duration-300 ${loading ? 'blur-sm' : ''}`}
+          className={`grid grid-cols-1 md:grid-cols-2 gap-6 transition-all duration-300 ${
+            loading ? "blur-sm" : ""
+          }`}
         >
-          <Field label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required disabled={loading} />
-          <Field label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required disabled={loading} />
+          <Field
+            label="First Name"
+            name="firstName"
+            value={formData.firstName}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+          <Field
+            label="Last Name"
+            name="lastName"
+            value={formData.lastName}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Phone <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-2">
-              <select name="countryCode" value={formData.countryCode} onChange={handleChange} className="border border-gray-300 p-2 rounded w-40" disabled={loading}>
+              <select
+                name="countryCode"
+                value={formData.countryCode}
+                onChange={handleChange}
+                className="border border-gray-300 p-2 rounded w-40"
+                disabled={loading}
+              >
                 <option value="">Select Code</option>
                 {countries.map((c, index) => (
-                  <option key={index} value={c.code}>{c.flag} ({c.phoneCode})</option>
+                  <option key={index} value={c.code}>
+                    {c.flag} ({c.phoneCode})
+                  </option>
                 ))}
               </select>
               <input
@@ -159,55 +225,177 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               />
             </div>
           </div>
-          <Field label="Age" name="age" type="number" value={formData.age} onChange={handleChange} required min={16} disabled={loading} />
-          <Field label="Email" name="email" type="email" value={formData.email} onChange={handleChange} required disabled={loading} />
-          <Field label="Job Title" name="jobTitle" value={formData.jobTitle} onChange={handleChange} required disabled={loading} />
-          <Field label="Organization" name="organization" value={formData.organization} onChange={handleChange} required disabled={loading} />
+          <Field
+            label="Age"
+            name="age"
+            type="number"
+            value={formData.age}
+            onChange={handleChange}
+            required
+            min={16}
+            disabled={loading}
+          />
+          <Field
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+          <Field
+            label="Job Title"
+            name="jobTitle"
+            value={formData.jobTitle}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+          <Field
+            label="Organization"
+            name="organization"
+            value={formData.organization}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Country <span className="text-red-500">*</span></label>
-            <select name="organizationCountry" value={formData.organizationCountry} onChange={handleChange} className="w-full border border-gray-300 p-2 rounded" required disabled={loading}>
-              <option value="" disabled hidden>Select a Country</option>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Country <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="organizationCountry"
+              value={formData.organizationCountry}
+              onChange={handleChange}
+              className="w-full border border-gray-300 p-2 rounded"
+              required
+              disabled={loading}
+            >
+              <option value="" disabled hidden>
+                Select a Country
+              </option>
               {countries.map((c) => (
-                <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
+                <option key={c.name} value={c.name}>
+                  {c.flag} {c.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Organization Type <span className="text-red-500">*</span></label>
-            <select name="organizationType" value={formData.organizationType} onChange={handleChange} className="w-full border border-gray-300 p-2 rounded" required disabled={loading}>
-              <option value="" disabled hidden>Select Type</option>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Organization Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="organizationType"
+              value={formData.organizationType}
+              onChange={handleChange}
+              className="w-full border border-gray-300 p-2 rounded"
+              required
+              disabled={loading}
+            >
+              <option value="" disabled hidden>
+                Select Type
+              </option>
               {organizationTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
+                <option key={type} value={type}>
+                  {type}
+                </option>
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Which day will you attend? <span className="text-red-500">*</span></label>
-            <select name="participationDay" value={formData.participationDay} onChange={handleChange} className="w-full border border-gray-300 p-2 rounded" required disabled={loading}>
-              <option value="" disabled hidden>Select a day</option>
-              <option value="October 17">October 17</option>
-              <option value="October 18">October 18</option>
-              <option value="October 19">October 19</option>
-            </select>
+
+          {/* ✅ Günler Checkbox */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select the days you will attend{" "}
+              <span className="text-red-500">*</span>
+            </label>
+            <div className="flex mt-2 gap-2">
+              {eventDays.map((day, index) => (
+                <label key={index} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="selectedDays"
+                    value={day}
+                    className="checkbox-custom"
+                    checked={formData.selectedDays.includes(day)}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                  <span>{day}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Why would you like to attend?
+            </label>
+            <textarea
+              name="description"
+              rows={3}
+              placeholder="Could you please write down your purpose for attending our event?"
+              className="w-full border border-gray-300 p-2 rounded"
+              value={formData.description}
+              onChange={handleChange}
+              disabled={loading}
+            />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea name="description" rows={3} placeholder="Could you please write down your purpose for attending our event?" className="w-full border border-gray-300 p-2 rounded" value={formData.description} onChange={handleChange} disabled={loading} />
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Profile Photo <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="file"
+              name="photo"
+              accept="image/*"
+              onChange={handleChange}
+              className="w-full border border-gray-300 p-2 rounded"
+              disabled={loading}
+            />
+            {preview && (
+              <img
+                src={preview}
+                alt="Preview"
+                className="mt-2 h-32 w-32 object-cover rounded border"
+              />
+            )}
           </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Profile Photo - Logo <span className="text-red-500">*</span></label>
-            <input type="file" name="photo" accept="image/*" onChange={handleChange} className="w-full border border-gray-300 p-2 rounded" disabled={loading} />
-            {preview && <img src={preview} alt="Preview" className="mt-2 h-32 w-32 object-cover rounded border" />}
-          </div>
-          <div className="md:col-span-2 flex items-start gap-2">
-            <input type="checkbox" name="termsAccepted" checked={formData.termsAccepted} onChange={handleChange} className="mt-1" disabled={loading} />
-            <label className="text-sm text-gray-700">
-              <strong>Data Protection Notice:</strong> I consent to the processing of my personal data in accordance with the applicable data protection laws.{" "}
-              <Link to="/zero-waste-kvkk" target="_blank" className="text-blue-600 underline text-sm">Read full KVKK</Link>
+          <div className="md:col-span-2 flex items-start gap-4">
+            <input
+              type="checkbox"
+              name="termsAccepted"
+              checked={formData.termsAccepted}
+              onChange={handleChange}
+              className="checkbox-custom"
+              disabled={loading}
+            />
+            <label className="text-sm text-gray-700 leading-5">
+              <strong>Data Protection Notice:</strong> I consent to the
+              processing of my personal data in accordance with the applicable
+              data protection laws.{" "}
+              <Link
+                to="/zero-waste-kvkk"
+                target="_blank"
+                className="text-emerald-600 underline text-sm"
+              >
+                Read full KVKK
+              </Link>
             </label>
           </div>
+
           <div className="md:col-span-2">
-            <button type="submit" className={`w-full py-2 rounded transition ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white`} disabled={loading}>
+            <button
+              type="submit"
+              className={`w-full py-2 rounded transition ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              } text-white`}
+              disabled={loading}
+            >
               {loading ? "Submitting..." : "Submit"}
             </button>
           </div>

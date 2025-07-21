@@ -4,3 +4,34 @@
 .absolute-center{
     @apply absolute top-1/2 left-1/2 transform -translate-1/2
 }
+.checkbox-custom {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #10B981; /* emerald-500 */
+  border-radius: 4px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  flex-shrink: 0; /* sıkışmayı önler */
+}
+
+.checkbox-custom:checked {
+  background-color: #10B981; /* emerald kutu */
+  border-color: #10B981;
+}
+
+.checkbox-custom:checked::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 12px;
+  border: solid white; /* beyaz tick */
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
