@@ -16,6 +16,7 @@ import TableLoading from "../../components/admin/table/TableLoading";
 import TableNull from "../../components/admin/table/TableNull";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import DescriptionCell from "../../components/common/DescriptionCell";
 
 const Partnerships = () => {
   const [participants, setParticipants] = useState([]);
@@ -255,7 +256,7 @@ const Partnerships = () => {
                     <td className="px-4 py-2">{p.organization}</td>
                     <td className="px-4 py-2">{p.organizationType}</td>
                     <td className="px-4 py-2">{p.organizationCountry}</td>
-                    <td className="px-4 py-2">{p.description || "—"}</td>
+                    <DescriptionCell text={p.description} />
                     <td className="px-4 py-2 text-gray-600  font-semibold">
                       {p.createdAt?.toDate().toLocaleString("tr-TR") || "—"}
                     </td>

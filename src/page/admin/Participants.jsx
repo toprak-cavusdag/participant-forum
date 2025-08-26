@@ -17,6 +17,7 @@ import { useSelector } from "react-redux";
 import TableLoading from "../../components/admin/table/TableLoading";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import DescriptionCell from "../../components/common/DescriptionCell";
 
 const Participants = () => {
   const [participants, setParticipants] = useState([]);
@@ -30,7 +31,7 @@ const Participants = () => {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const participantsPerPage = 6;
+  const participantsPerPage = 4;
 
   const adminInfo = useSelector((state) => state.user.adminInfo);
 
@@ -133,7 +134,6 @@ const Participants = () => {
     }
 
     const exportData = filtered.map((p) => ({
-      PhotoURL: p.photoUrl || "—",
       Name: `${p.firstName} ${p.lastName}`,
       Email: p.email,
       Phone: p.phone,
@@ -143,7 +143,7 @@ const Participants = () => {
       OrganizationType: p.organizationType,
       Country: p.organizationCountry,
       Description: p.description,
-      AdminNote: p.adminNote || "—",
+      ParticipantDay: p.participationDay || "—",
       SubmittedAt: p.createdAt?.toDate().toLocaleString("tr-TR") || "—",
     }));
 
@@ -274,11 +274,11 @@ const Participants = () => {
                     <td className="px-4 py-2">{p.organization}</td>
                     <td className="px-4 py-2">{p.organizationType}</td>
                     <td className="px-4 py-2">{p.organizationCountry}</td>
-                    <td className="px-4 py-2">{p.description || "—"}</td>
+                    <DescriptionCell text={p.description} />
                     <td className="px-4 py-2 font-semibold text-gray-600">
                       {p.createdAt?.toDate().toLocaleString("tr-TR") || "—"}
                     </td>
-                    <td className="px-4 py-2">{p.participationDay}</td>
+                    <td className="px-4 py-2 ">{p.participationDay}</td>
                     <td className="px-4 py-2">
                       <div className="flex flex-col gap-2">
                         <PopConfirmDelete

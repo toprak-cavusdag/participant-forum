@@ -176,7 +176,7 @@ export const countries = [
   { name: "Tonga", phoneCode: "+676", flag: "🇹🇴" },
   { name: "Trinidad and Tobago", phoneCode: "+1-868", flag: "🇹🇹" },
   { name: "Tunisia", phoneCode: "+216", flag: "🇹🇳" },
-  { name: "Turkey", phoneCode: "+90", flag: "🇹🇷" },
+  { name: "Turkiye", phoneCode: "+90", flag: "🇹🇷" },
   { name: "Turkmenistan", phoneCode: "+993", flag: "🇹🇲" },
   { name: "Tuvalu", phoneCode: "+688", flag: "🇹🇻" },
   { name: "Uganda", phoneCode: "+256", flag: "🇺🇬" },
