@@ -3,19 +3,24 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
+import { getFunctions } from "firebase/functions";
+
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET, // ✅ .appspot.com olmalı
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBtNSCDu7RWFChH6KMFFFlXC4cNoA_duZo",
+  authDomain: "global-zero-waste-forum.firebaseapp.com",
+  projectId: "global-zero-waste-forum",
+  storageBucket: "global-zero-waste-forum.firebasestorage.app",
+  messagingSenderId: "719673367171",
+  appId: "1:719673367171:web:fbec96432425bcdc2599b6"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
 
+const FUNCTIONS_REGION = "europe-west1";
+
+
+export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app, FUNCTIONS_REGION);
