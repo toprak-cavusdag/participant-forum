@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { countries, organizationTypes } from "./data";
 import { db, storage } from "../../config/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import Field from "../common/Field";
 import { motion } from "framer-motion";
 import emailjs from "@emailjs/browser";
+import { FiUploadCloud } from "react-icons/fi"; // 👈 ikon burada
 
 const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const [formData, setFormData] = useState({
@@ -28,6 +29,8 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     termsAccepted: false,
   });
 
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -155,6 +158,27 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const onDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    if (e.type === "dragleave") setDragActive(false);
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length) {
+      handleChange({ target: { name: "photo", files } });
+    }
+  };
+
+  const onPickFile = () => {
+    if (!loading) fileInputRef.current?.click();
   };
 
   return (
@@ -347,14 +371,80 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Profile Photo <span className="text-red-500">*</span>
             </label>
-            <input
-              type="file"
-              name="photo"
-              accept="image/*"
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-2 rounded"
-              disabled={loading}
-            />
+
+            {/* Dropzone */}
+            <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) =>
+                (e.key === "Enter" || e.key === " ") &&
+                fileInputRef.current?.click()
+              }
+              onClick={() => fileInputRef.current?.click()}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+                const files = e.dataTransfer?.files;
+                if (files && files.length) {
+                  // trigger existing handleChange logic
+                  handleChange({ target: { name: "photo", files } });
+                }
+              }}
+              className={[
+                "relative w-full rounded-xl border transition-all cursor-pointer",
+                "p-6 sm:p-8 flex flex-col items-center justify-center text-center",
+                dragActive
+                  ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
+                  : "border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/50",
+                loading && "opacity-60 pointer-events-none",
+              ].join(" ")}
+            >
+              {/* react-icons */}
+              <FiUploadCloud
+                size={48}
+                className={`mb-3 ${
+                  dragActive ? "text-indigo-500" : "text-gray-400"
+                }`}
+              />
+
+              <p className="text-sm sm:text-base font-medium text-gray-800">
+                {loading ? "Uploading…" : "Drag & drop or click to upload"}
+              </p>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                PNG/JPG recommended • Max 5MB
+              </p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                name="photo"
+                accept="image/*"
+                onChange={handleChange}
+                className="hidden"
+                disabled={loading}
+              />
+
+              {dragActive && (
+                <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-indigo-400/60"></div>
+              )}
+            </div>
+
             {preview && (
               <img
                 src={preview}
@@ -363,6 +453,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               />
             )}
           </div>
+
           <div className="md:col-span-2 flex items-start gap-4">
             <input
               type="checkbox"
