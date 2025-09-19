@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Overlay from "./Overlay";
+import { useTranslation } from "react-i18next";
 
 const CountdownTimer = () => {
+  const { t } = useTranslation();
   const calculateTimeLeft = () => {
     const targetDate = new Date("2025-10-17T10:00:00+03:00");
     const now = new Date();
@@ -55,7 +57,7 @@ const CountdownTimer = () => {
       variants={containerVariants}
       className="relative w-11/12 md:w-8/12 mx-auto -top-30 z-30 h-[300px] rounded-xl overflow-hidden shadow-xl mt-10"
     >
-      {/* Background image */}
+
       <img
         src="/countdown.jpg"
         alt="Countdown Background"
@@ -72,12 +74,12 @@ const CountdownTimer = () => {
             transition={{ duration: 0.6 }}
             className="text-3xl md:text-4xl font-bold text-green-300"
           >
-            🎉 The Global Zero Waste Forum has begun!
+            {t("countdown.start")}
           </motion.div>
         ) : (
           <>
             <h2 className="text-3xl md:text-5xl font-bold mb-10 text-white drop-shadow">
-              Countdown to the Global Zero Waste Forum
+              {t("countdown.title")}
             </h2>
             <div className="flex flex-wrap justify-center gap-6 text-4xl md:text-5xl font-mono font-semibold">
               <motion.div
@@ -85,28 +87,28 @@ const CountdownTimer = () => {
                 transition={{ type: "spring" }}
               >
                 {String(timeLeft.days).padStart(2, "0")}
-                <div className="text-sm">Days</div>
+                <div className="text-sm">{t("countdown.days")}</div>
               </motion.div>
               <motion.div
                 whileHover={{ scale: 1.2 }}
                 transition={{ type: "spring" }}
               >
                 {String(timeLeft.hours).padStart(2, "0")}
-                <div className="text-sm">Hours</div>
+                <div className="text-sm">{t("countdown.hours")}</div>
               </motion.div>
               <motion.div
                 whileHover={{ scale: 1.2 }}
                 transition={{ type: "spring" }}
               >
                 {String(timeLeft.minutes).padStart(2, "0")}
-                <div className="text-sm">Minutes</div>
+                <div className="text-sm">{t("countdown.minutes")}</div>
               </motion.div>
               <motion.div
                 whileHover={{ scale: 1.2 }}
                 transition={{ type: "spring" }}
               >
                 {String(timeLeft.seconds).padStart(2, "0")}
-                <div className="text-sm">Seconds</div>
+                <div className="text-sm">{t("countdown.seconds")}</div>
               </motion.div>
             </div>
           </>

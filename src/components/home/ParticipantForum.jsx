@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { countries, organizationTypes } from "./data";
 import { db, storage } from "../../config/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -8,9 +8,13 @@ import { Link } from "react-router-dom";
 import Field from "../common/Field";
 import { motion } from "framer-motion";
 import emailjs from "@emailjs/browser";
-import { FiUploadCloud } from "react-icons/fi"; // 👈 ikon burada
+import { FiUploadCloud } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
 const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
+  const { t, i18n } = useTranslation();
+const countriesDict = t("countries", { returnObjects: true }) || {};
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -29,12 +33,18 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     termsAccepted: false,
   });
 
+  const countryOptions = useMemo(() => {
+  return Object.entries(countriesDict)
+    .map(([key, label]) => ({ key, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, i18n.language));
+}, [countriesDict, i18n.language]);
+
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const eventDays = ["October 17", "October 18", "October 19"];
+  const eventDays = t("form.eventDays", { returnObjects: true });
 
   const handleChange = (e) => {
     const { name, value, files, type, checked } = e.target;
@@ -89,18 +99,16 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.photo) return toast.error("Please upload a profile photo.");
-    if (!formData.countryCode)
-      return toast.error("Please select a country code.");
+    if (!formData.photo) return toast.error(t("form.error.photo"));
+    if (!formData.countryCode) return toast.error(t("form.error.code"));
     if (!formData.participantType)
-      return toast.error("Please select participant type.");
-    if (!formData.termsAccepted)
-      return toast.error("You must accept the terms and conditions.");
+      return toast.error(t("form.error.participantType"));
+    if (!formData.termsAccepted) return toast.error(t("form.error.terms"));
     if (!formData.selectedDays.length)
-      return toast.error("Please select at least one day.");
+      return toast.error(t("form.error.days"));
 
     setLoading(true);
-    const toastId = toast.loading("Submitting your application...");
+    const toastId = toast.loading(t("form.loading"));
 
     try {
       const imageRef = ref(
@@ -132,7 +140,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
         participationDay: formData.selectedDays.join(", "),
       });
 
-      toast.success("Application submitted successfully!", { id: toastId });
+      toast.success(t("form.success"), { id: toastId });
       setIsSubmitted(true);
       setFormData({
         firstName: "",
@@ -154,32 +162,12 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
       setPreview(null);
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong. Please try again.", { id: toastId });
+      toast.error(t("form.error.general"), { id: toastId });
     } finally {
       setLoading(false);
     }
   };
 
-  const onDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
-    if (e.type === "dragleave") setDragActive(false);
-  };
-
-  const onDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    const files = e.dataTransfer?.files;
-    if (files && files.length) {
-      handleChange({ target: { name: "photo", files } });
-    }
-  };
-
-  const onPickFile = () => {
-    if (!loading) fileInputRef.current?.click();
-  };
 
   return (
     <motion.div
@@ -203,7 +191,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
           }`}
         >
           <Field
-            label="First Name"
+            label={t("form.firstName")}
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
@@ -211,16 +199,17 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             disabled={loading}
           />
           <Field
-            label="Last Name"
+            label={t("form.lastName")}
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
             required
             disabled={loading}
           />
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Phone <span className="text-red-500">*</span>
+              {t("form.phone")} <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-2">
               <select
@@ -230,7 +219,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                 className="border border-gray-300 p-2 rounded w-40"
                 disabled={loading}
               >
-                <option value="">Select Code</option>
+                <option value="">{t("form.selectCode")}</option>
                 {countries.map((c, index) => (
                   <option key={index} value={c.code}>
                     {c.flag} ({c.phoneCode})
@@ -240,7 +229,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               <input
                 type="tel"
                 name="phone"
-                placeholder="555 123 4567"
+                placeholder={t("form.phonePlaceholder")}
                 className="flex-1 border border-gray-300 p-2 rounded"
                 value={formData.phone}
                 onChange={handleChange}
@@ -249,8 +238,9 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               />
             </div>
           </div>
+
           <Field
-            label="Age"
+            label={t("form.age")}
             name="age"
             type="number"
             value={formData.age}
@@ -260,7 +250,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             disabled={loading}
           />
           <Field
-            label="Email"
+            label={t("form.email")}
             name="email"
             type="email"
             value={formData.email}
@@ -269,7 +259,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             disabled={loading}
           />
           <Field
-            label="Job Title"
+            label={t("form.jobTitle")}
             name="jobTitle"
             value={formData.jobTitle}
             onChange={handleChange}
@@ -277,38 +267,42 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             disabled={loading}
           />
           <Field
-            label="Organization"
+            label={t("form.organization")}
             name="organization"
             value={formData.organization}
             onChange={handleChange}
             required
             disabled={loading}
           />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Country <span className="text-red-500">*</span>
+              {t("form.organizationCountry")} <span className="text-red-500">*</span>
             </label>
-            <select
-              name="organizationCountry"
-              value={formData.organizationCountry}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-2 rounded"
-              required
-              disabled={loading}
-            >
-              <option value="" disabled hidden>
-                Select a Country
-              </option>
-              {countries.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.flag} {c.name}
-                </option>
-              ))}
-            </select>
+<select
+  name="organizationCountry"
+  value={formData.organizationCountry} // ör: "turkiye"
+  onChange={(e) =>
+    setFormData((p) => ({ ...p, organizationCountry: e.target.value }))
+  }
+  className="w-full border border-gray-300 p-2 rounded"
+  required
+  disabled={loading}
+>
+  <option value="" disabled hidden>
+    {t("form.selectCountry")}
+  </option>
+  {countryOptions.map((o) => (
+    <option key={o.key} value={o.key}>
+      {o.label}
+    </option>
+  ))}
+</select>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Organization Type <span className="text-red-500">*</span>
+              {t("form.organizationType")} <span className="text-red-500">*</span>
             </label>
             <select
               name="organizationType"
@@ -319,7 +313,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             >
               <option value="" disabled hidden>
-                Select Type
+                {t("form.selectType")}
               </option>
               {organizationTypes.map((type) => (
                 <option key={type} value={type}>
@@ -329,13 +323,12 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             </select>
           </div>
 
-          {/* ✅ Günler Checkbox */}
+          {/* Günler */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select the days you will attend{" "}
-              <span className="text-red-500">*</span>
+              {t("form.daysLabel")} <span className="text-red-500">*</span>
             </label>
-            <div className="flex mt-2 gap-2">
+            <div className="flex mt-2 gap-2 flex-wrap">
               {eventDays.map((day, index) => (
                 <label key={index} className="flex items-center gap-2">
                   <input
@@ -355,21 +348,22 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Why would you like to attend?
+              {t("form.whyAttend")}
             </label>
             <textarea
               name="description"
               rows={3}
-              placeholder="Could you please write down your purpose for attending our event?"
+              placeholder={t("form.whyAttendPlaceholder")}
               className="w-full border border-gray-300 p-2 rounded"
               value={formData.description}
               onChange={handleChange}
               disabled={loading}
             />
           </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Profile Photo <span className="text-red-500">*</span>
+              {t("form.profilePhoto")} <span className="text-red-500">*</span>
             </label>
 
             {/* Dropzone */}
@@ -402,7 +396,6 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                 setDragActive(false);
                 const files = e.dataTransfer?.files;
                 if (files && files.length) {
-                  // trigger existing handleChange logic
                   handleChange({ target: { name: "photo", files } });
                 }
               }}
@@ -415,19 +408,17 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                 loading && "opacity-60 pointer-events-none",
               ].join(" ")}
             >
-              {/* react-icons */}
               <FiUploadCloud
                 size={48}
                 className={`mb-3 ${
                   dragActive ? "text-indigo-500" : "text-gray-400"
                 }`}
               />
-
               <p className="text-sm sm:text-base font-medium text-gray-800">
-                {loading ? "Uploading…" : "Drag & drop or click to upload"}
+                {loading ? t("form.uploading") : t("form.uploadHint")}
               </p>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                PNG/JPG recommended • Max 5MB
+                {t("form.uploadSubHint")}
               </p>
 
               <input
@@ -464,15 +455,14 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             />
             <label className="text-sm text-gray-700 leading-5">
-              <strong>Data Protection Notice:</strong> I consent to the
-              processing of my personal data in accordance with the applicable
-              data protection laws.{" "}
+              <strong>{t("form.terms.label")}</strong>{" "}
+              {t("form.terms.text")}{" "}
               <Link
                 to="/zero-waste-kvkk"
                 target="_blank"
                 className="text-emerald-600 underline text-sm"
               >
-                Read full KVKK
+                {t("form.terms.link")}
               </Link>
             </label>
           </div>
@@ -487,7 +477,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               } text-white`}
               disabled={loading}
             >
-              {loading ? "Submitting..." : "Submit"}
+              {loading ? t("form.submitting") : t("form.submit")}
             </button>
           </div>
         </form>

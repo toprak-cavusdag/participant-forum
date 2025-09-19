@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { countries, organizationTypes } from "./data";
+import { useMemo, useState } from "react";
+import { countries } from "./data";
 import { db, storage } from "../../config/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -8,8 +8,18 @@ import { Link } from "react-router-dom";
 import Field from "../common/Field";
 import { motion } from "framer-motion";
 import emailjs from "@emailjs/browser";
+import { useTranslation } from "react-i18next";
 
 const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
+const { t, i18n } = useTranslation();
+  const countriesDict = t("countries", { returnObjects: true }) || {};
+
+  const countryOptions = useMemo(() => {
+  return Object.entries(countriesDict)
+    .map(([key, label]) => ({ key, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, i18n.language));
+}, [countriesDict, i18n.language]);
+
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -53,12 +63,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
         import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        {
-          name,
-          email,
-          title,
-          organization,
-        },
+        { name, email, title, organization },
         import.meta.env.VITE_EMAILJS_USER_ID
       );
       console.log("✅ Confirmation email sent successfully");
@@ -70,19 +75,17 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.photo) return toast.error("Please upload a profile photo.");
-    if (!formData.countryCode)
-      return toast.error("Please select a country code.");
+    if (!formData.photo) return toast.error(t("form.error.photo"));
+    if (!formData.countryCode) return toast.error(t("form.error.code"));
     if (!formData.participantType)
-      return toast.error("Please select participant type.");
-    if (!formData.termsAccepted)
-      return toast.error("You must accept the terms and conditions.");
+      return toast.error(t("form.error.participantType"));
+    if (!formData.termsAccepted) return toast.error(t("form.error.terms"));
 
     setLoading(true);
-    const toastId = toast.loading("Submitting your application...");
+    const toastId = toast.loading(t("form.loading"));
 
     try {
-      // Upload photo
+      // Upload logo
       const imageRef = ref(
         storage,
         `photos/${Date.now()}-${formData.photo.name}`
@@ -113,7 +116,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
         organization: formData.organization,
       });
 
-      toast.success("Application submitted successfully!", { id: toastId });
+      toast.success(t("form.success"), { id: toastId });
       setIsSubmitted(true);
       setFormData({
         firstName: "",
@@ -134,7 +137,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
       setPreview(null);
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong. Please try again.", { id: toastId });
+      toast.error(t("form.error.general"), { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -162,7 +165,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
           }`}
         >
           <Field
-            label="First Name"
+            label={t("form.firstName")}
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
@@ -170,16 +173,17 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             disabled={loading}
           />
           <Field
-            label="Last Name"
+            label={t("form.lastName")}
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
             required
             disabled={loading}
           />
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Phone <span className="text-red-500">*</span>
+              {t("form.phone")} <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-2">
               <select
@@ -189,7 +193,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 className="border border-gray-300 p-2 rounded w-40"
                 disabled={loading}
               >
-                <option value="">Select Code</option>
+                <option value="">{t("form.selectCode")}</option>
                 {countries.map((c, index) => (
                   <option key={index} value={c.code}>
                     {c.flag} ({c.phoneCode})
@@ -199,7 +203,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               <input
                 type="tel"
                 name="phone"
-                placeholder="555 123 4567"
+                placeholder={t("form.phonePlaceholder")}
                 className="flex-1 border border-gray-300 p-2 rounded"
                 value={formData.phone}
                 onChange={handleChange}
@@ -208,8 +212,9 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               />
             </div>
           </div>
+
           <Field
-            label="Age"
+            label={t("form.age")}
             name="age"
             type="number"
             value={formData.age}
@@ -219,7 +224,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             disabled={loading}
           />
           <Field
-            label="Email"
+            label={t("form.email")}
             name="email"
             type="email"
             value={formData.email}
@@ -228,7 +233,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             disabled={loading}
           />
           <Field
-            label="Job Title"
+            label={t("form.jobTitle")}
             name="jobTitle"
             value={formData.jobTitle}
             onChange={handleChange}
@@ -236,38 +241,45 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             disabled={loading}
           />
           <Field
-            label="Organization"
+            label={t("form.organization")}
             name="organization"
             value={formData.organization}
             onChange={handleChange}
             required
             disabled={loading}
           />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Country <span className="text-red-500">*</span>
+              {t("form.organizationCountry")}{" "}
+              <span className="text-red-500">*</span>
             </label>
-            <select
-              name="organizationCountry"
-              value={formData.organizationCountry}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-2 rounded"
-              required
-              disabled={loading}
-            >
-              <option value="" disabled hidden>
-                Select a Country
-              </option>
-              {countries.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.flag} {c.name}
-                </option>
-              ))}
-            </select>
+<select
+  name="organizationCountry"
+  value={formData.organizationCountry} // ör: "turkiye"
+  onChange={(e) =>
+    setFormData((p) => ({ ...p, organizationCountry: e.target.value }))
+  }
+  className="w-full border border-gray-300 p-2 rounded"
+  required
+  disabled={loading}
+>
+  <option value="" disabled hidden>
+    {t("form.selectCountry")}
+  </option>
+  {countryOptions.map((o) => (
+    <option key={o.key} value={o.key}>
+      {o.label}
+    </option>
+  ))}
+</select>
+
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Organization Type <span className="text-red-500">*</span>
+              {t("form.organizationType")}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="organizationType"
@@ -278,32 +290,36 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             >
               <option value="" disabled hidden>
-                Select Type
+                {t("form.selectType")}
               </option>
-              {organizationTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
+              {t("form.organizationTypesList", { returnObjects: true }).map(
+                (type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                )
+              )}
             </select>
           </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Why would you like to attend?
+              {t("form.whyAttend")}
             </label>
             <textarea
               name="description"
               rows={3}
-              placeholder="Could you please write down your purpose for attending our event?"
+              placeholder={t("form.whyAttendPlaceholder")}
               className="w-full border border-gray-300 p-2 rounded"
               value={formData.description}
               onChange={handleChange}
               disabled={loading}
             />
           </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Logo <span className="text-red-500">*</span>
+              {t("form.logo")} <span className="text-red-500">*</span>
             </label>
             <input
               type="file"
@@ -321,6 +337,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               />
             )}
           </div>
+
           <div className="md:col-span-2 flex items-start gap-4">
             <input
               type="checkbox"
@@ -331,18 +348,17 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             />
             <label className="text-sm text-gray-700 leading-5">
-              <strong>Data Protection Notice:</strong> I consent to the
-              processing of my personal data in accordance with the applicable
-              data protection laws.{" "}
+              <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
               <Link
                 to="/zero-waste-kvkk"
                 target="_blank"
                 className="text-emerald-600 underline text-sm"
               >
-                Read full KVKK
+                {t("form.terms.link")}
               </Link>
             </label>
           </div>
+
           <div className="md:col-span-2">
             <button
               type="submit"
@@ -353,7 +369,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               } text-white`}
               disabled={loading}
             >
-              {loading ? "Submitting..." : "Submit"}
+              {loading ? t("form.submitting") : t("form.submit")}
             </button>
           </div>
         </form>
