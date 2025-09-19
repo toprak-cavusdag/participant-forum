@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 
 const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const { t, i18n } = useTranslation();
-const countriesDict = t("countries", { returnObjects: true }) || {};
+  const countriesDict = t("countries", { returnObjects: true }) || {};
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -34,10 +34,10 @@ const countriesDict = t("countries", { returnObjects: true }) || {};
   });
 
   const countryOptions = useMemo(() => {
-  return Object.entries(countriesDict)
-    .map(([key, label]) => ({ key, label }))
-    .sort((a, b) => a.label.localeCompare(b.label, i18n.language));
-}, [countriesDict, i18n.language]);
+    return Object.entries(countriesDict)
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, i18n.language));
+  }, [countriesDict, i18n.language]);
 
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
@@ -104,8 +104,7 @@ const countriesDict = t("countries", { returnObjects: true }) || {};
     if (!formData.participantType)
       return toast.error(t("form.error.participantType"));
     if (!formData.termsAccepted) return toast.error(t("form.error.terms"));
-    if (!formData.selectedDays.length)
-      return toast.error(t("form.error.days"));
+    if (!formData.selectedDays.length) return toast.error(t("form.error.days"));
 
     setLoading(true);
     const toastId = toast.loading(t("form.loading"));
@@ -167,7 +166,6 @@ const countriesDict = t("countries", { returnObjects: true }) || {};
       setLoading(false);
     }
   };
-
 
   return (
     <motion.div
@@ -277,32 +275,37 @@ const countriesDict = t("countries", { returnObjects: true }) || {};
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.organizationCountry")} <span className="text-red-500">*</span>
+              {t("form.organizationCountry")}{" "}
+              <span className="text-red-500">*</span>
             </label>
-<select
-  name="organizationCountry"
-  value={formData.organizationCountry} // ör: "turkiye"
-  onChange={(e) =>
-    setFormData((p) => ({ ...p, organizationCountry: e.target.value }))
-  }
-  className="w-full border border-gray-300 p-2 rounded"
-  required
-  disabled={loading}
->
-  <option value="" disabled hidden>
-    {t("form.selectCountry")}
-  </option>
-  {countryOptions.map((o) => (
-    <option key={o.key} value={o.key}>
-      {o.label}
-    </option>
-  ))}
-</select>
+            <select
+              name="organizationCountry"
+              value={formData.organizationCountry} // ör: "turkiye"
+              onChange={(e) =>
+                setFormData((p) => ({
+                  ...p,
+                  organizationCountry: e.target.value,
+                }))
+              }
+              className="w-full border border-gray-300 p-2 rounded"
+              required
+              disabled={loading}
+            >
+              <option value="" disabled hidden>
+                {t("form.selectCountry")}
+              </option>
+              {countryOptions.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.organizationType")} <span className="text-red-500">*</span>
+              {t("form.organizationType")}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="organizationType"
@@ -315,11 +318,13 @@ const countriesDict = t("countries", { returnObjects: true }) || {};
               <option value="" disabled hidden>
                 {t("form.selectType")}
               </option>
-              {organizationTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
+              {t("form.organizationTypesList", { returnObjects: true }).map(
+                (type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                )
+              )}
             </select>
           </div>
 
@@ -455,8 +460,7 @@ const countriesDict = t("countries", { returnObjects: true }) || {};
               disabled={loading}
             />
             <label className="text-sm text-gray-700 leading-5">
-              <strong>{t("form.terms.label")}</strong>{" "}
-              {t("form.terms.text")}{" "}
+              <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
               <Link
                 to="/zero-waste-kvkk"
                 target="_blank"

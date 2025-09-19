@@ -260,6 +260,16 @@
     "yemen": "Yemen",
     "zambia": "Zambia",
     "zimbabwe": "Zimbabwe"
+  },
+
+  "footer":{
+    "first":"All right reserved Organized by the",
+    "last":"Zero Waste Foundation"
+  },
+    "success": {
+    "title": "Application submitted successfully!",
+    "desc": "Thank you for your submission. We'll get back to you shortly.",
+    "cta": "Go back to forum page"
   }
 }
 

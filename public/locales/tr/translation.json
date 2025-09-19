@@ -22,7 +22,7 @@
     "lastName": "Soyad",
     "phone": "Telefon",
     "phonePlaceholder": "555 123 4567",
-    "selectCode": "Kod Seç",
+    "selectCode": "Ülke Kodunuz",
     "age": "Yaş",
      "eventDays": ["17 Ekim", "18 Ekim", "19 Ekim"],
     "organizationTypesList": [
@@ -35,7 +35,7 @@
       "Medya, Platformlar ve Girişimler"
     ],
     "email": "E-Posta",
-    "jobTitle": "Pozisyon",
+    "jobTitle": "Unvan",
     "organization": "Kurum",
     "organizationCountry": "Ülke",
     "organizationType": "Kurum Türü",
@@ -259,6 +259,15 @@
     "yemen": "Yemen",
     "zambia": "Zambiya",
     "zimbabwe": "Zimbabve"
+  },
+    "footer":{
+    "first":"Tüm hakları saklıdır. Düzenleyen",
+    "last":"Sıfır Atık Vakfı"
+  },
+    "success": {
+    "title": "Başvuru başarıyla gönderildi!",
+    "desc": "Başvurunuz için teşekkür ederiz. En kısa sürede sizinle iletişime geçeceğiz.",
+    "cta": "Foruma geri dön"
   }
 }
 
