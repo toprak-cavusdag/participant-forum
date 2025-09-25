@@ -31,10 +31,92 @@ const Participants = () => {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const participantsPerPage = 4;
+  const participantsPerPage = 15;
 
   const adminInfo = useSelector((state) => state.user.adminInfo);
 
+  /* ---------------- Helpers: Day Normalizers ---------------- */
+
+  // Tek bir öğeyi stringe çevir: string | number | Timestamp | {label|name|day} | nested object
+  const normalizeDay = (v) => {
+    if (v == null) return null;
+
+    if (typeof v === "string") return v;
+    if (typeof v === "number") return String(v);
+
+    // Firestore Timestamp (methodlu) => v.toDate()
+    if (typeof v === "object" && typeof v.toDate === "function") {
+      try {
+        return v
+          .toDate()
+          .toLocaleDateString("en-US", { month: "long", day: "numeric" });
+      } catch {}
+    }
+
+    // Firestore Timestamp (plain) => {seconds, nanoseconds}
+    if (
+      typeof v === "object" &&
+      "seconds" in v &&
+      "nanoseconds" in v &&
+      typeof v.seconds === "number"
+    ) {
+      const ms = v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
+      return new Date(ms).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+      });
+    }
+
+    // Ortak field isimleri
+    if (typeof v === "object") {
+      if (v.label) return String(v.label);
+      if (v.name) return String(v.name);
+      if (v.day) return String(v.day);
+
+      // Tek değerli nested objeler (ör. {value:"October 17"})
+      const vals = Object.values(v);
+      if (vals.length === 1) return normalizeDay(vals[0]);
+    }
+
+    try {
+      return String(v);
+    } catch {
+      return null;
+    }
+  };
+
+  // participation day alanını tek biçime getir: Array<string>
+  const getDays = (obj) => {
+    const cand =
+      obj?.participationDay ??
+      obj?.participationDays ??
+      obj?.days ??
+      obj?.day ??
+      obj;
+
+    if (cand == null) return [];
+
+    if (Array.isArray(cand)) {
+      return cand.map(normalizeDay).filter(Boolean);
+    }
+
+    if (typeof cand === "object") {
+      // {0:"..",1:".."} veya {0:{seconds,..},1:{...}}
+      return Object.values(cand).map(normalizeDay).filter(Boolean);
+    }
+
+    if (typeof cand === "string") {
+      // "Oct 17, Oct 18"
+      return cand
+        .split(",")
+        .map((s) => normalizeDay(s.trim()))
+        .filter(Boolean);
+    }
+
+    return [];
+  };
+
+  /* ---------------- Fetch ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -70,6 +152,7 @@ const Participants = () => {
     }
   }, [searchInput]);
 
+  /* ---------------- Handlers ---------------- */
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
     setCurrentPage(1);
@@ -97,8 +180,8 @@ const Participants = () => {
 
   const handleNoteUpdate = async (id, note) => {
     try {
-      const ref = doc(db, "participant", id);
-      await updateDoc(ref, {
+      const refDoc = doc(db, "participant", id);
+      await updateDoc(refDoc, {
         adminNote: note,
         noteBy: adminInfo?.firstname || "Admin",
         noteDate: new Date(),
@@ -110,9 +193,13 @@ const Participants = () => {
     }
   };
 
+  /* ---------------- Filter + Search (days dahil) ---------------- */
   const filtered = participants.filter((p) => {
-    const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
-    const searchMatch = fullName.includes(searchQuery.toLowerCase());
+    const fullName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
+    const daysText = getDays(p).join(" ").toLowerCase();
+    const searchTarget = `${fullName} ${daysText}`.trim();
+    const searchMatch = searchTarget.includes(searchQuery.toLowerCase());
+
     return (
       searchMatch &&
       (filters.organizationType === "All" ||
@@ -127,35 +214,43 @@ const Participants = () => {
   const currentItems = filtered.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filtered.length / participantsPerPage);
 
+  /* ---------------- Export ---------------- */
   const exportToExcel = () => {
     if (filtered.length === 0) {
       message.warning("No data to export");
       return;
     }
 
-    const exportData = filtered.map((p) => ({
-      Name: `${p.firstName} ${p.lastName}`,
-      Email: p.email,
-      Phone: p.phone,
-      Age: p.age,
-      JobTitle: p.jobTitle,
-      Organization: p.organization,
-      OrganizationType: p.organizationType,
-      Country: p.organizationCountry,
-      Description: p.description,
-      ParticipantDay: p.participationDay || "—",
-      SubmittedAt: p.createdAt?.toDate().toLocaleString("tr-TR") || "—",
-    }));
+    const exportData = filtered.map((p) => {
+      const days = getDays(p);
+      return {
+        Name: `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim(),
+        Email: p.email ?? "",
+        Phone: p.phone ?? "",
+        Age: p.age ?? "",
+        JobTitle: p.jobTitle ?? "",
+        Organization: p.organization ?? "",
+        OrganizationType: p.organizationType ?? "",
+        Country: p.organizationCountry ?? "",
+        Description: p.description ?? "",
+        ParticipantDay: days.length ? days.join(", ") : "—",
+        SubmittedAt: p.createdAt?.toDate?.().toLocaleString("tr-TR") ?? "—",
+      };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Participants");
 
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(blob, "Participants_FULL.xlsx");
   };
 
+  /* ---------------- UI ---------------- */
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
@@ -210,7 +305,7 @@ const Participants = () => {
         <div className="flex items-center border border-slate-100 shadow rounded overflow-hidden">
           <input
             type="text"
-            placeholder="Search by name..."
+            placeholder="Search by name or day..."
             className="p-2 outline-none"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
@@ -250,50 +345,76 @@ const Participants = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentItems.map((p) => (
-                  <tr key={p.id} className="hover:bg-emerald-50  border-b border-slate-200">
-                    <td className="px-4 py-2">
-                      {p.photoUrl ? (
-                        <Image
-                          src={p.photoUrl}
-                          width={50}
-                          height={50}
-                          className="h-10 w-10 object-cover rounded-full"
-                        />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {p.firstName} {p.lastName}
-                    </td>
-                    <td className="px-4 py-2">{p.email}</td>
-                    <td className="px-4 py-2 w-fit whitespace-nowrap">{p.phone}</td>
-                    <td className="px-4 py-2">{p.age}</td>
-                    <td className="px-4 py-2">{p.jobTitle}</td>
-                    <td className="px-4 py-2">{p.organization}</td>
-                    <td className="px-4 py-2">{p.organizationType}</td>
-                    <td className="px-4 py-2">{p.organizationCountry}</td>
-                    <DescriptionCell text={p.description} />
-                    <td className="px-4 py-2 font-semibold text-gray-600">
-                      {p.createdAt?.toDate().toLocaleString("tr-TR") || "—"}
-                    </td>
-                    <td className="px-4 py-2 ">{p.participationDay}</td>
-                    <td className="px-4 py-2">
-                      <div className="flex flex-col gap-2">
-                        <PopConfirmDelete
-                          onConfirm={() => handleDelete(p.id, p.photoUrl)}
-                        />
-                        <textarea
-                          className="w-44 border text-xs p-2 rounded shadow-sm"
-                          placeholder="Write a note..."
-                          defaultValue={p.adminNote || ""}
-                          onBlur={(e) => handleNoteUpdate(p.id, e.target.value)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {currentItems.map((p) => {
+                  const days = getDays(p);
+                  return (
+                    <tr
+                      key={p.id}
+                      className="hover:bg-emerald-50  border-b border-slate-200"
+                    >
+                      <td className="px-4 py-2">
+                        {p.photoUrl ? (
+                          <Image
+                            src={p.photoUrl}
+                            width={50}
+                            height={50}
+                            className="h-10 w-10 object-cover rounded-full"
+                          />
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        {p.firstName} {p.lastName}
+                      </td>
+                      <td className="px-4 py-2">{p.email}</td>
+                      <td className="px-4 py-2 w-fit whitespace-nowrap">
+                        {p.phone}
+                      </td>
+                      <td className="px-4 py-2">{p.age}</td>
+                      <td className="px-4 py-2">{p.jobTitle}</td>
+                      <td className="px-4 py-2">{p.organization}</td>
+                      <td className="px-4 py-2">{p.organizationType}</td>
+                      <td className="px-4 py-2">{p.organizationCountry}</td>
+                      <DescriptionCell text={p.description} />
+                      <td className="px-4 py-2 font-semibold text-gray-600">
+                        {p.createdAt?.toDate?.().toLocaleString("tr-TR") || "—"}
+                      </td>
+
+              <td className="px-4 py-2">
+  {Array.isArray(p.selectedDays) && p.selectedDays.length > 0 ? (
+    <div className="flex flex-wrap gap-1">
+      {p.selectedDays.map((day, i) => (
+        <span
+          key={i}
+          className="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700"
+        >
+          {day}
+        </span>
+      ))}
+    </div>
+  ) : "—"}
+</td>
+
+
+                      <td className="px-4 py-2">
+                        <div className="flex flex-col gap-2">
+                          <PopConfirmDelete
+                            onConfirm={() => handleDelete(p.id, p.photoUrl)}
+                          />
+                          <textarea
+                            className="w-44 border text-xs p-2 rounded shadow-sm"
+                            placeholder="Write a note..."
+                            defaultValue={p.adminNote || ""}
+                            onBlur={(e) =>
+                              handleNoteUpdate(p.id, e.target.value)
+                            }
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
