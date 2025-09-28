@@ -233,7 +233,10 @@ const Participants = () => {
         OrganizationType: p.organizationType ?? "",
         Country: p.organizationCountry ?? "",
         Description: p.description ?? "",
-        ParticipantDay: days.length ? days.join(", ") : "—",
+        ParticipantDay: Array.isArray(p.selectedDays) && p.selectedDays.length > 0
+  ? p.selectedDays.join(", ")
+  : "—",
+
         SubmittedAt: p.createdAt?.toDate?.().toLocaleString("tr-TR") ?? "—",
       };
     });
