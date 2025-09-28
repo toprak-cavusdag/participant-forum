@@ -1,31 +1,28 @@
 import React, { useState } from "react";
-import KVKKTR from "../../components/home/KVKKTR";
-import GDPR from "../../components/home/GDPR";
+import KVKKTR from "./KVKKTR";
+import GDPR from "./GDPR";
 
-
-// Ana KVKK Componenti
 const KVKK = () => {
-  const [lang, setLang] = useState("tr"); // default Türkçe
+  const [lang, setLang] = useState("tr"); // "tr" | "en"
 
   return (
-    <div className="max-w-3xl mx-auto mt-10">
-      {/* Dil Seçimi */}
+    <div className="max-w-4xl mx-auto">
+      {/* Dil seçimi */}
       <div className="flex justify-end gap-2 mb-4">
         <button
           onClick={() => setLang("tr")}
           className={`px-3 py-1 rounded ${lang === "tr" ? "bg-emerald-600 text-white" : "bg-gray-200"}`}
         >
-          Türkçe
+          Türkçe (KVKK)
         </button>
         <button
           onClick={() => setLang("en")}
           className={`px-3 py-1 rounded ${lang === "en" ? "bg-emerald-600 text-white" : "bg-gray-200"}`}
         >
-          English
+          English (GDPR)
         </button>
       </div>
 
-      {/* Seçilen dile göre içerik */}
       {lang === "tr" ? <KVKKTR /> : <GDPR />}
     </div>
   );

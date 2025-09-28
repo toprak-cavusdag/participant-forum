@@ -1,0 +1,102 @@
+
+{
+  "title": "INFORMATION NOTICE UNDER THE LAW ON THE PROTECTION OF PERSONAL DATA (GDPR)",
+  "intro": "Zero Waste Foundation (“<strong>Foundation</strong>” or “<strong>Data Controller</strong>”) attaches great importance to the lawful processing, secure storage and protection of your personal data pursuant to the Law No. 6698 on the Protection of Personal Data (“<strong>GDPR</strong>”). This Information Notice has been prepared to inform you about the personal data collected during the registration process for the <strong>Global Zero Waste Forum</strong>.",
+  "sections": {
+    "controller": {
+      "title": "1. Identity of the Data Controller",
+      "desc": "Your personal data are processed by the data controller indicated below:",
+      "fields": {
+        "title": { "label": "Title:", "value": "Zero Waste Foundation" },
+        "address": { "label": "Address:", "value": "Kandilli, Hıdrellez Sk. No:3, 34684 Üsküdar/İstanbul" },
+        "email": { "label": "E-mail:", "value": "secretariat@globalzerowasteforum.org" },
+        "phone": { "label": "Phone:", "value": "(0216) 651 20 00" }
+      }
+    },
+
+    "data": {
+      "title": "2. Personal Data Processed",
+      "desc": "The following personal data you provide via the event registration form are processed:",
+      "items": {
+        "identity": "<strong>Identity Data:</strong> Name, surname, date of birth, passport number, passport issue and expiry dates",
+        "contact": "<strong>Contact Data:</strong> Phone, e-mail",
+        "professional": "<strong>Professional Data:</strong> Role/title, organization information, organization type",
+        "other": "<strong>Other Data:</strong> Selected participation day(s), country information, passport image, logo, profile photo"
+      }
+    },
+
+    "purposes": {
+      "title": "3. Purposes of Processing",
+      "desc": "Your personal data are processed for the following purposes:",
+      "items": [
+        "Carrying out event application and registration processes",
+        "Participant verification and identity checks",
+        "Fulfilling legal notifications for international participants",
+        "Conducting communication activities (information, invitation, updates, etc.)",
+        "Event management, organization and planning",
+        "Taking security measures",
+        "Submitting required notifications to competent public authorities",
+        "Archiving and reporting",
+        "Preparing participant lists and event materials"
+      ]
+    },
+
+    "basis": {
+      "title": "4. Method and Legal Grounds",
+      "desc": "Your personal data are collected by <strong>automated</strong> means through the online registration form, e-mail and similar channels. Your data are processed based on the legal grounds set out in Article 5 of GDPR:",
+      "items": [
+        "Your explicit consent (Art. 5/1)",
+        "Where it is expressly provided for by laws (Art. 5/2-a)",
+        "Where processing is necessary for the establishment, exercise or protection of a right (Art. 5/2-e)",
+        "Where processing is necessary for the legitimate interests of the data controller provided that it does not harm the fundamental rights and freedoms of the data subject (Art. 5/2-f)"
+      ]
+    },
+
+    "transfer": {
+      "title": "5. Transfer of Personal Data",
+      "desc": "Your personal data may be transferred to the following recipient groups in accordance with Articles 8 and 9 of GDPR:",
+      "items": [
+        "Event contractors and business partners",
+        "Competent public authorities where required (e.g., law enforcement, consulates, governorships, etc.)",
+        "International stakeholders (event partners, speakers, etc.)",
+        "Relevant IT and hosting service providers"
+      ],
+      "abroadNote": "Your data may be transferred abroad only with your explicit consent or under other conditions stipulated in Article 9 of GDPR."
+    },
+
+    "rights": {
+      "title": "6. Rights of the Data Subject",
+      "desc": "Pursuant to Article 11 of GDPR, you have the following rights:",
+      "items": [
+        "To learn whether your personal data are processed",
+        "To request information if your personal data have been processed",
+        "To learn the purpose of processing and whether they are used in line with that purpose",
+        "To learn the third parties to whom the personal data are transferred domestically or abroad",
+        "To request correction if your personal data are incomplete or inaccurate",
+        "To request deletion or destruction under the conditions stipulated in GDPR",
+        "To request notification of the transactions to third parties to whom the personal data have been transferred",
+        "To object to a result against you arising from analysis exclusively by automated systems",
+        "To claim compensation for damages arising from unlawful processing of your personal data"
+      ],
+      "footer": "You may submit your requests to the <strong>Zero Waste Foundation</strong> in writing or through other methods determined by GDPR."
+    },
+
+    "contact": {
+      "title": "7. Contact",
+      "desc": "For any requests, suggestions or applications regarding the processing of your personal data, you may contact us via the channels below:",
+      "labels": { "email": "E-mail:", "address": "Address:", "website": "Website:" },
+      "values": {
+        "email": "secretariat@globalzerowasteforum.org",
+        "address": "Kandilli, Hıdrellez Sk. No:3, 34684 Üsküdar/İstanbul",
+        "website": "https://sifiratikvakfi.org/"
+      }
+    },
+
+    "consent": {
+      "title": "8. Explicit Consent Statement",
+      "desc": "I hereby give my explicit consent to the processing of my personal data contained in this form for the purposes specified above and, where necessary, to the sharing of such data with relevant third parties in Türkiye and abroad."
+    }
+  },
+
+  "footer": "This notice has been prepared in accordance with GDPR and may be updated where necessary."
+}

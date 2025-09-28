@@ -45,10 +45,11 @@ const validateTCNo = (tcNo) => {
   return digits[10] === checkDigit11 && digits[9] === checkDigit10;
 };
 
+const validateCountryCode = (code, list) => list.some((c) => c.phoneCode === code);
+
 const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
   const { t, i18n } = useTranslation();
 
-  // Gün listesi (çevirilerden)
   const eventDays = useMemo(() => t("form.eventDays", { returnObjects: true }) || [], [t]);
 
   const countriesDict = t("countries", { returnObjects: true }) || {};
@@ -68,7 +69,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
     organizationCountry: "",
     jobTitle: "",
     organizationType: "",
-    selectedDays: [],            // ✅ eklendi
+    selectedDays: [],
     participantType: "Partnership",
     photo: null,
     termsAccepted: false,
@@ -85,6 +86,15 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
       .map(([key, label]) => ({ key, label }))
       .sort((a, b) => a.label.localeCompare(b.label, i18n.language));
   }, [countriesDict, i18n.language]);
+
+  // Ülke kodu için aramalı liste (datalist)
+  const codeList = useMemo(() => {
+    return countries.map((c) => ({
+      flag: c.flag,
+      name: c.name || c.label || "",
+      phoneCode: c.phoneCode, // "+90" gibi
+    }));
+  }, []);
 
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
@@ -115,7 +125,6 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
   const handleChange = (e) => {
     const { name, value, files, type, checked } = e.target;
 
-    // ✅ Foto / Pasaport foto
     if (name === "photo" || name === "passportPhoto") {
       const file = files?.[0];
       if (file) {
@@ -137,28 +146,34 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
       return;
     }
 
-    // ✅ Katılım günleri (checkbox çoklu seçim)
     if (type === "checkbox" && name === "selectedDays") {
       setFormData((prev) => {
         const has = prev.selectedDays.includes(value);
         return {
           ...prev,
           selectedDays: checked
-            ? (has ? prev.selectedDays : [...prev.selectedDays, value])
+            ? has
+              ? prev.selectedDays
+              : [...prev.selectedDays, value]
             : prev.selectedDays.filter((d) => d !== value),
         };
       });
       return;
     }
 
-    // ✅ Diğer checkbox'lar (termsAccepted gibi)
     if (type === "checkbox") {
       setFormData((prev) => ({ ...prev, [name]: checked }));
       return;
     }
 
-    // ✅ Text/Select vb.
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCodeBlur = () => {
+    if (!formData.countryCode) return;
+    if (!validateCountryCode(formData.countryCode, codeList)) {
+      toast.error(t("form.error.code") || "Lütfen geçerli bir ülke kodu seçin (örn: +90).");
+    }
   };
 
   const sendConfirmationEmail = async ({
@@ -175,7 +190,6 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
         { name, email, title, organization, participationDay },
         import.meta.env.VITE_EMAILJS_USER_ID
       );
-      console.log("✅ Confirmation email sent successfully");
     } catch (error) {
       console.error("❌ Failed to send confirmation email", error);
     }
@@ -241,14 +255,14 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
 
     if (!formData.photo) return toast.error(t("form.error.photo"));
     if (!formData.countryCode) return toast.error(t("form.error.code"));
+    if (!validateCountryCode(formData.countryCode, codeList))
+      return toast.error(t("form.error.code") || "Lütfen geçerli bir ülke kodu seçin (örn: +90).");
     if (!formData.participantType) return toast.error(t("form.error.participantType"));
     if (!formData.termsAccepted) return toast.error(t("form.error.terms"));
-    if (!formData.organizationCountry) return toast.error(t("form.error.country") || "Lütfen bir ülke seçin.");
-
-    // ✅ en az bir katılım günü seçimi zorunlu
-    if (!formData.selectedDays || formData.selectedDays.length === 0) {
+    if (!formData.organizationCountry)
+      return toast.error(t("form.error.country") || "Lütfen bir ülke seçin.");
+    if (!formData.selectedDays || formData.selectedDays.length === 0)
       return toast.error(t("form.error.days") || "Lütfen en az bir katılım günü seçin.");
-    }
 
     if (inTR) {
       if (!validateTR()) return;
@@ -283,7 +297,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
         organizationCountry: formData.organizationCountry,
         jobTitle: formData.jobTitle,
         organizationType: formData.organizationType,
-        selectedDays: formData.selectedDays, // ✅ Firestore'a yaz
+        selectedDays: formData.selectedDays,
         participantType: formData.participantType,
         photoUrl,
         createdAt: serverTimestamp(),
@@ -315,7 +329,6 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
 
       await addDoc(collection(db, "partnership"), userData);
 
-      // İstersen seçilen günleri mail içeriğine de gönderelim
       await sendConfirmationEmail({
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
@@ -338,7 +351,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
         organizationCountry: "",
         jobTitle: "",
         organizationType: "",
-        selectedDays: [], // ✅ reset
+        selectedDays: [],
         participantType: "Partnership",
         photo: null,
         termsAccepted: false,
@@ -390,9 +403,11 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             />
             <p className="text-sm text-slate-600 mt-1">
-              {t("form.warning.enterAccurateName") || "Lütfen adınızı ve soyadınızı kimlik belgenizde yer aldığı şekilde girin."}
+              {t("form.warning.enterAccurateName") ||
+                "Lütfen adınızı ve soyadınızı kimlik belgenizde yer aldığı şekilde girin."}
             </p>
           </div>
+
           <div>
             <Field
               label={t("form.lastName")}
@@ -403,29 +418,40 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             />
             <p className="text-sm text-slate-600 mt-1">
-              {t("form.warning.enterAccurateName") || "Lütfen adınızı ve soyadınızı kimlik belgenizde yer aldığı şekilde girin."}
+              {t("form.warning.enterAccurateName") ||
+                "Lütfen adınızı ve soyadınızı kimlik belgenizde yer aldığı şekilde girin."}
             </p>
           </div>
 
+          {/* Telefon + Ülke Kodu (arama yapılabilir datalist) */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.phone")} <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-2">
-              <select
-                name="countryCode"
-                value={formData.countryCode}
-                onChange={handleChange}
-                className="border border-gray-300 p-2 rounded w-40 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
-              >
-                <option value="">{t("form.selectCode")}</option>
-                {countries.map((c, index) => (
-                  <option key={index} value={c.code}>
-                    {c.flag} ({c.phoneCode})
-                  </option>
-                ))}
-              </select>
+              <div className="w-52">
+                <input
+                  list="country-codes"
+                  name="countryCode"
+                  value={formData.countryCode}
+                  onChange={handleChange}
+                  onBlur={handleCodeBlur}
+                  placeholder={t("form.selectCode") || "Ülke kodu ara (örn: +90, Türkiye)"}
+                  className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
+                  required
+                />
+                <datalist id="country-codes">
+                  {codeList.map((c, i) => (
+                    <option
+                      key={i}
+                      value={c.phoneCode}
+                      label={`${c.flag} ${c.name} (${c.phoneCode})`}
+                    />
+                  ))}
+                </datalist>
+              </div>
+
               <input
                 type="tel"
                 name="phone"
@@ -541,7 +567,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             </select>
           </div>
 
-          {/* ✅ Katılım Günleri (selectedDays) */}
+          {/* Katılım Günleri (selectedDays) */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.daysLabel") || "Katılım Günleri"} <span className="text-red-500">*</span>
@@ -567,6 +593,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             </p>
           </div>
 
+          {/* Logo/Foto yükleme */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.logo")} <span className="text-red-500">*</span>
@@ -637,7 +664,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   disabled={loading}
                 />
                 <p className="text-sm text-slate-600 mt-1">
-                  {t("form.warning.enterValidTCNo") || "Lütfen geçerli bir 11 haneli T.C. Kimlik Numarası girin."}
+                  {t("form.warning.enterValidTCNo") ||
+                    "Lütfen geçerli bir 11 haneli T.C. Kimlik Numarası girin."}
                 </p>
               </div>
             </>
@@ -653,7 +681,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   disabled={loading}
                 />
                 <p className="text-sm text-slate-600 mt-1">
-                  {t("form.warning.enterValidPassportId") || "Lütfen geçerli bir pasaport ID girin (6–20 alfasayısal karakter)."}
+                  {t("form.warning.enterValidPassportId") ||
+                    "Lütfen geçerli bir pasaport ID girin (6–20 alfasayısal karakter)."}
                 </p>
               </div>
               <div>
@@ -670,7 +699,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   disabled={loading}
                 />
                 <p className="text-sm text-slate-600 mt-1">
-                  {t("form.warning.enterValidIssueDate") || "Lütfen doğru pasaport veriliş tarihini girin."}
+                  {t("form.warning.enterValidIssueDate") ||
+                    "Lütfen doğru pasaport veriliş tarihini girin."}
                 </p>
               </div>
               <div>
@@ -687,7 +717,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   disabled={loading}
                 />
                 <p className="text-sm text-slate-600 mt-1">
-                  {t("form.warning.enterValidExpiryDate") || "Lütfen geçerli bir pasaport bitiş tarihi girin."}
+                  {t("form.warning.enterValidExpiryDate") ||
+                    "Lütfen geçerli bir pasaport bitiş tarihi girin."}
                 </p>
               </div>
               <div className="md:col-span-2">

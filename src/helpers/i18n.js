@@ -1,21 +1,23 @@
+// src/i18n.ts
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import Backend from "i18next-http-backend";
-import LanguageDetector from "i18next-browser-languagedetector";
+import HttpBackend from "i18next-http-backend";
 
 i18n
-  .use(Backend)
-  .use(LanguageDetector)
+  .use(HttpBackend)
   .use(initReactI18next)
   .init({
     fallbackLng: "tr",
-    debug: true,
-    interpolation: {
-      escapeValue: false, 
-    },
+    supportedLngs: ["tr", "en"],
+    ns: ["translation", "kvkk"],     // <-- kvkk namespace’i ekle
+    defaultNS: "translation",
+    load: "languageOnly",
+    interpolation: { escapeValue: false },
     backend: {
-      loadPath: "/locales/{{lng}}/translation.json",
+      loadPath: "/locales/{{lng}}/{{ns}}.json",  // <-- public altından çeker
     },
+    // Geliştirirken cache’lenmiş jsonları anında yenilemek için faydalı:
+    // reloadOnPrerender: true, // (vite-plugin-ssr vb. kullanıyorsan)
   });
 
 export default i18n;

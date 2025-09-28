@@ -45,6 +45,9 @@ const validateTCNo = (tcNo) => {
   return digits[10] === checkDigit11 && digits[9] === checkDigit10;
 };
 
+// ✅ Ülke kodu doğrulama (datalist için)
+const validateCountryCode = (code, list) => list.some((c) => c.phoneCode === code);
+
 const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const { t, i18n } = useTranslation();
   const countriesDict = t("countries", { returnObjects: true }) || {};
@@ -79,6 +82,15 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
       .map(([key, label]) => ({ key, label }))
       .sort((a, b) => a.label.localeCompare(b.label, i18n.language));
   }, [countriesDict, i18n.language]);
+
+  // ✅ Ülke kodu için aramalı liste (datalist kullanan)
+  const codeList = useMemo(() => {
+    return countries.map((c) => ({
+      flag: c.flag,
+      name: c.name || c.label || "",
+      phoneCode: c.phoneCode, // örn: "+90"
+    }));
+  }, []);
 
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
@@ -150,6 +162,14 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ✅ Kod alanından çıkarken geçerlilik kontrolü
+  const handleCodeBlur = () => {
+    if (!formData.countryCode) return;
+    if (!validateCountryCode(formData.countryCode, codeList)) {
+      toast.error(t("form.error.code") || "Please select a valid country code (e.g. +90).");
+    }
   };
 
   const sendConfirmationEmail = async ({
@@ -231,6 +251,8 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
 
     if (!formData.photo) return toast.error(t("form.error.photo"));
     if (!formData.countryCode) return toast.error(t("form.error.code"));
+    if (!validateCountryCode(formData.countryCode, codeList))
+      return toast.error(t("form.error.code") || "Please select a valid country code (e.g. +90).");
     if (!formData.participantType)
       return toast.error(t("form.error.participantType"));
     if (!formData.termsAccepted) return toast.error(t("form.error.terms"));
@@ -381,6 +403,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             />
             <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterAccurateName") || "Please enter your name exactly as it appears on your ID."}</p>
           </div>
+
           <div>
             <Field
               label={t("form.lastName")}
@@ -392,25 +415,36 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             />
             <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterAccurateName") || "Please enter your surname exactly as it appears on your ID."}</p>
           </div>
+
+          {/* ✅ Telefon + Ülke Kodu (datalist ile aramalı) */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.phone")} <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-2">
-              <select
-                name="countryCode"
-                value={formData.countryCode}
-                onChange={handleChange}
-                className="border border-gray-300 p-2 rounded w-40 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
-              >
-                <option value="">{t("form.selectCode")}</option>
-                {countries.map((c, index) => (
-                  <option key={index} value={c.code}>
-                    {c.flag} ({c.phoneCode})
-                  </option>
-                ))}
-              </select>
+              <div className="w-52">
+                <input
+                  list="country-codes"
+                  name="countryCode"
+                  value={formData.countryCode}
+                  onChange={handleChange}
+                  onBlur={handleCodeBlur}
+                  placeholder={t("form.selectCode") || "Search country code (e.g. +90, Türkiye)"}
+                  className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
+                  required
+                />
+                <datalist id="country-codes">
+                  {codeList.map((c, i) => (
+                    <option
+                      key={i}
+                      value={c.phoneCode}
+                      label={`${c.flag} ${c.name} (${c.phoneCode})`}
+                    />
+                  ))}
+                </datalist>
+              </div>
+
               <input
                 type="tel"
                 name="phone"
@@ -424,6 +458,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             </div>
             <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterPersonalPhone") || "Please enter your personal phone number."}</p>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.birthDate") || "Doğum Tarihi"} <span className="text-red-500">*</span>
@@ -439,6 +474,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             />
             <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidBirthDate") || "Please enter your correct birth date."}</p>
           </div>
+
           <div>
             <Field
               label={t("form.email")}
@@ -451,6 +487,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             />
             <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidEmail") || "Please enter a valid email address for confirmation."}</p>
           </div>
+
           <Field
             label={t("form.jobTitle")}
             name="jobTitle"
@@ -459,6 +496,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             required
             disabled={loading}
           />
+
           <Field
             label={t("form.organization")}
             name="organization"
@@ -467,6 +505,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             required
             disabled={loading}
           />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.organizationCountry")} <span className="text-red-500">*</span>
@@ -494,6 +533,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               ))}
             </select>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.organizationType")} <span className="text-red-500">*</span>
@@ -516,6 +556,8 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               ))}
             </select>
           </div>
+
+          {/* Katılım Günleri */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.daysLabel")} <span className="text-red-500">*</span>
@@ -538,6 +580,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             </div>
             <p className="text-sm text-slate-600 mt-1">{t("form.warning.selectAtLeastOneDay") || "Please select at least one participation day."}</p>
           </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.whyAttend")}
@@ -552,6 +595,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             />
           </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.profilePhoto")} <span className="text-red-500">*</span>
@@ -628,6 +672,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               />
             )}
           </div>
+
           {inTR ? (
             <>
               <div>
@@ -759,6 +804,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               </div>
             </>
           )}
+
           <div className="md:col-span-2 flex items-start gap-4">
             <input
               type="checkbox"
@@ -779,6 +825,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               </Link>
             </label>
           </div>
+
           <div className="md:col-span-2">
             <button
               type="submit"

@@ -1,0 +1,103 @@
+
+{
+  "title": "KİŞİSEL VERİLERİN KORUNMASI KANUNU (KVKK) KAPSAMINDA AYDINLATMA METNİ",
+  "intro": "Sıfır Atık Vakfı (“<strong>Vakıf</strong>” veya “<strong>Veri Sorumlusu</strong>”), 6698 sayılı Kişisel Verilerin Korunması Kanunu (“<strong>KVKK</strong>”) uyarınca, kişisel verilerinizin hukuka uygun olarak işlenmesi, saklanması ve gizliliğinizin korunmasına önem vermektedir. Bu kapsamda, işbu Aydınlatma Metni, tarafımızca gerçekleştirilen <strong>Sıfır Atık Forumu</strong> kayıt süreci sırasında toplanan kişisel verilere ilişkin bilgilendirme amacıyla hazırlanmıştır.",
+
+  "sections": {
+    "controller": {
+      "title": "1. Veri Sorumlusunun Kimliği",
+      "desc": "KVKK uyarınca, kişisel verileriniz aşağıda bilgileri yer alan veri sorumlusu tarafından işlenmektedir:",
+      "fields": {
+        "title": { "label": "Unvan:", "value": "Sıfır Atık Vakfı" },
+        "address": { "label": "Adres:", "value": "Kandilli, Hıdrellez Sk. No:3, 34684 Üsküdar/İstanbul" },
+        "email": { "label": "E-posta:", "value": "secretariat@globalzerowasteforum.org" },
+        "phone": { "label": "Telefon:", "value": "(0216) 651 20 00" }
+      }
+    },
+
+    "data": {
+      "title": "2. İşlenen Kişisel Verileriniz",
+      "desc": "Etkinliğe kayıt formu aracılığıyla tarafımıza ilettiğiniz aşağıdaki kişisel verileriniz işlenmektedir:",
+      "items": {
+        "identity": "<strong>Kimlik Bilgileri:</strong> Ad, soyad, doğum tarihi, pasaport numarası, pasaport veriliş ve bitiş tarihi",
+        "contact": "<strong>İletişim Bilgileri:</strong> Telefon, e-posta",
+        "professional": "<strong>Mesleki Bilgiler:</strong> Görev/unvan, kurum/kuruluş bilgisi, kurum türü",
+        "other": "<strong>Diğer Bilgiler:</strong> Katılım günü/günleri, ülke bilgisi, pasaport görseli, logo, profil fotoğrafı"
+      }
+    },
+
+    "purposes": {
+      "title": "3. Kişisel Verilerinizin İşlenme Amaçları",
+      "desc": "Kişisel verileriniz aşağıdaki amaçlarla sınırlı olmak üzere işlenmektedir:",
+      "items": [
+        "Etkinlik başvuru ve kayıt süreçlerinin yürütülmesi",
+        "Katılımcı doğrulama ve kimlik kontrolü işlemlerinin gerçekleştirilmesi",
+        "Uluslararası katılımcılar için gerekli yasal bildirimlerin yapılması",
+        "İletişim faaliyetlerinin yürütülmesi (bilgilendirme, davet, güncelleme vb.)",
+        "Etkinlik yönetimi, organizasyon ve planlamasının sağlanması",
+        "Güvenlik önlemlerinin alınması",
+        "Yetkili kamu kurum ve kuruluşlarına gerekli bildirimlerin yapılması",
+        "Arşivleme ve raporlama süreçlerinin yürütülmesi",
+        "Katılımcı listelerinin oluşturulması ve etkinlik materyallerinin hazırlanması"
+      ]
+    },
+
+    "basis": {
+      "title": "4. Kişisel Verilerin Toplanma Yöntemi ve Hukuki Sebebi",
+      "desc": "Kişisel verileriniz, etkinliğe ilişkin çevrim içi kayıt formu, e-posta ve benzeri yollarla <strong>otomatik</strong> yöntemlerle toplanmaktadır. Verileriniz, KVKK’nın 5. maddesinde belirtilen aşağıdaki hukuki sebepler kapsamında işlenmektedir:",
+      "items": [
+        "Açık rızanızın alınması (madde 5/1)",
+        "Kanunlarda öngörülmesi (madde 5/2-a)",
+        "Bir hakkın tesisi, kullanılması veya korunması için veri işlemenin zorunlu olması (madde 5/2-e)",
+        "İlgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla, veri sorumlusunun meşru menfaatleri için veri işlenmesinin zorunlu olması (madde 5/2-f)"
+      ]
+    },
+
+    "transfer": {
+      "title": "5. Kişisel Verilerinizin Aktarılması",
+      "desc": "Toplanan kişisel verileriniz, KVKK'nın 8. ve 9. maddelerine uygun olarak, aşağıdaki alıcı gruplarına aktarılabilir:",
+      "items": [
+        "Etkinlikte görevli organizasyon firmaları ve iş ortakları",
+        "Gerekli durumlarda yetkili kamu kurum ve kuruluşları (örn. emniyet, konsolosluk, valilik vb.)",
+        "Uluslararası düzeyde iş birliği yapılan paydaşlar (etkinlik ortakları, konuşmacılar vb.)",
+        "İlgili bilişim hizmeti sağlayıcıları ve barındırma hizmetleri (hosting, sunucu vs.)"
+      ],
+      "abroadNote": "Verileriniz yurt dışına yalnızca açık rızanız alınarak veya KVKK’nın 9. maddesinde belirtilen diğer şartlara uygun olarak aktarılmaktadır."
+    },
+
+    "rights": {
+      "title": "6. Kişisel Veri Sahibinin Hakları",
+      "desc": "KVKK’nın 11. maddesi uyarınca, kişisel veri sahibi olarak aşağıdaki haklara sahipsiniz:",
+      "items": [
+        "Kişisel verilerinizin işlenip işlenmediğini öğrenme",
+        "Kişisel verileriniz işlenmişse buna ilişkin bilgi talep etme",
+        "Kişisel verilerinizin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme",
+        "Yurt içinde veya yurt dışında kişisel verilerinizin aktarıldığı üçüncü kişileri bilme",
+        "Kişisel verilerinizin eksik veya yanlış işlenmiş olması hâlinde bunların düzeltilmesini isteme",
+        "KVKK’da öngörülen şartlar çerçevesinde kişisel verilerinizin silinmesini veya yok edilmesini isteme",
+        "Düzeltme veya silinme işlemlerinin, kişisel verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme",
+        "İşlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme",
+        "Kişisel verilerinizin kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız hâlinde zararınızın giderilmesini talep etme"
+      ],
+      "footer": "Bu haklarınıza ilişkin taleplerinizi, <strong>Sıfır Atık Vakfı</strong>’na yazılı olarak ya da KVKK tarafından belirlenen diğer yöntemlerle iletebilirsiniz."
+    },
+
+    "contact": {
+      "title": "7. İletişim",
+      "desc": "Kişisel verilerinizin işlenmesine ilişkin her türlü talep, öneri ve başvuru için bizimle aşağıdaki iletişim kanallarından irtibata geçebilirsiniz:",
+      "labels": { "email": "E-posta:", "address": "Adres:", "website": "Web sitesi:" },
+      "values": {
+        "email": "secretariat@globalzerowasteforum.org",
+        "address": "Kandilli, Hıdrellez Sk. No:3, 34684 Üsküdar/İstanbul",
+        "website": "https://sifiratikvakfi.org/"
+      }
+    },
+
+    "consent": {
+      "title": "8. Açık Rıza Beyanı",
+      "desc": "İşbu formda yer alan kişisel verilerimin, yukarıda belirtilen amaçlar ve kapsam doğrultusunda işlenmesine ve gerekli durumlarda yurt içindeki veya yurt dışındaki ilgili üçüncü kişilerle paylaşılmasına açık rıza veriyorum."
+    }
+  },
+
+  "footer": "Bu metin KVKK gereğince hazırlanmıştır; gerekli durumlarda güncellenebilir."
+}
