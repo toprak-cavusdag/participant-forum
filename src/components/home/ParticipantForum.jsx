@@ -805,26 +805,27 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             </>
           )}
 
-          <div className="md:col-span-2 flex items-start gap-4">
-            <input
-              type="checkbox"
-              name="termsAccepted"
-              checked={formData.termsAccepted}
-              onChange={handleChange}
-              className="checkbox-custom disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={loading}
-            />
-            <label className="text-sm text-gray-700 leading-5">
-              <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
-              <Link
-                to="/zero-waste-kvkk"
-                target="_blank"
-                className="text-emerald-600 underline text-sm"
-              >
-                {t("form.terms.link")}
-              </Link>
-            </label>
-          </div>
+<div className="md:col-span-2 flex items-start gap-4">
+  <input
+    type="checkbox"
+    name="termsAccepted"
+    checked={formData.termsAccepted}
+    onChange={handleChange}
+    className="checkbox-custom disabled:opacity-50 disabled:cursor-not-allowed"
+    disabled={loading}
+  />
+  <label className="text-sm text-gray-700 leading-5">
+    <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
+    <Link
+      to={i18n.language === "tr" ? "/zero-waste-kvkk" : "/zero-waste-gdpr"}
+      target="_blank"
+      className="text-emerald-600 underline text-sm"
+    >
+      {t("form.terms.link")}
+    </Link>
+  </label>
+</div>
+
 
           <div className="md:col-span-2">
             <button
