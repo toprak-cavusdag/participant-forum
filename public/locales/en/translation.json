@@ -7,7 +7,7 @@
     "days": "Days",
     "hours": "Hours",
     "minutes": "Minutes",
-    "seconds": "Minutes",
+    "seconds": "Seconds",
     "start": "🎉 The Global Zero Waste Forum has begun!"
   },
   "home": {
@@ -16,13 +16,13 @@
     "participant": "Participant",
     "partnership": "Partnership"
   },
-
   "form": {
     "firstName": "First Name",
     "lastName": "Last Name",
     "phone": "Phone",
     "phonePlaceholder": "555 123 4567",
     "selectCode": "Select Code",
+    "daysLabel": "Please indicate on which day(s) you will be attending the event.",
     "age": "Age",
     "email": "Email",
     "eventDays": ["October 17", "October 18", "October 19"],
@@ -48,6 +48,13 @@
     "uploadHint": "Drag & drop or click to upload",
     "uploading": "Uploading…",
     "uploadSubHint": "PNG/JPG recommended • Max 5MB",
+    "tcNo": "T.C. Identity Number",
+    "birthDate": "Date of Birth",
+    "passportId": "Passport ID",
+    "passportIssueDate": "Passport Issuance Date",
+    "passportExpiry": "Passport Expiry Date",
+    "passportPhoto": "Passport Photo",
+    "uploadPassportHint": "Click to upload passport image (JPEG/PNG).",
     "terms": {
       "label": "Data Protection Notice:",
       "text": "I consent to the processing of my personal data in accordance with the applicable data protection laws.",
@@ -61,11 +68,36 @@
       "code": "Please select a country code.",
       "participantType": "Please select participant type.",
       "terms": "You must accept the terms and conditions.",
-      "general": "Something went wrong. Please try again."
+      "general": "Something went wrong. Please try again.",
+      "tcno": "Please enter a valid T.C. Identity Number.",
+      "birthDate": "Please select a date of birth.",
+      "birthDateFuture": "Date of birth cannot be in the future.",
+      "passportId": "Please enter a valid Passport ID (6-20 alphanumeric characters).",
+      "passportIssueDate": "Please select passport issuance date.",
+      "passportIssueDateFuture": "Passport issuance date cannot be in the future.",
+      "passportIssueAfterExpiry": "Passport issuance date cannot be after expiry date.",
+      "passportExpiry": "Please select passport expiry date.",
+      "passportExpiryPast": "Passport expiry date cannot be in the past.",
+      "passportPhoto": "Please upload a passport photo.",
+      "invalidImage": "Please upload a valid image file (JPEG/PNG).",
+      "fileTooLarge": "File size must be less than 5MB.",
+      "country": "Please select a country."
+    },
+    "warning": {
+      "enterAccurateName": "Please enter your name exactly as it appears on your Pasaport.",
+      "enterPersonalPhone": "Please enter your personal phone number.",
+      "enterValidEmail": "Please enter a valid email address for confirmation.",
+      "selectAtLeastOneDay": "Please select at least one participation day.",
+      "uploadClearPhoto": "Please upload a clear and recent profile photo.",
+      "enterValidTCNo": "Please enter a valid 11-digit T.C. Kimlik No.",
+      "enterValidBirthDate": "Please enter your correct birth date.",
+      "enterValidPassportId": "Please enter a valid passport ID (6-20 alphanumeric characters).",
+      "enterValidIssueDate": "Please enter the correct passport issuance date.",
+      "enterValidExpiryDate": "Please enter a valid passport expiry date.",
+      "uploadClearPassportPhoto": "Please upload a clear image of your passport."
     },
     "loading": "Submitting your application..."
   },
-
   "countries": {
     "afghanistan": "Afghanistan",
     "albania": "Albania",
@@ -261,15 +293,14 @@
     "zambia": "Zambia",
     "zimbabwe": "Zimbabwe"
   },
-
-  "footer":{
-    "first":"All right reserved Organized by the",
-    "last":"Zero Waste Foundation"
+  "footer": {
+    "first": "All rights reserved. Organized by the",
+    "last": "Zero Waste Foundation"
   },
-    "success": {
+  "success": {
     "title": "Application submitted successfully!",
     "desc": "Thank you for your submission. We'll get back to you shortly.",
     "cta": "Go back to forum page"
-  }
+  },
+  "nameWarning": "Please enter your first and last name exactly as they appear on your passport or official identification."
 }
-

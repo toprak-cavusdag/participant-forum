@@ -1,30 +1,31 @@
 {
   "header": {
-    "title": "Sıfır Atık Vakfı tarafından düzenlenmiştir"
+    "title": "Sıfır Atık Vakfı tarafından düzenlenmektedir"
   },
   "countdown": {
-    "title": " Sıfır Atık Forumu’na Geri Sayım",
+    "title": "Küresel Sıfır Atık Forumu'na Geri Sayım",
     "days": "Gün",
     "hours": "Saat",
     "minutes": "Dakika",
     "seconds": "Saniye",
-    "start": "🎉 Sıfır Atık Forumu başladı!"
+    "start": "🎉 Küresel Sıfır Atık Forumu başladı!"
   },
   "home": {
-    "sublabel": "Katılımcı Türü",
-    "placeholder": "Bir tür seçiniz",
+    "sublabel": "Tip Seçin",
+    "placeholder": "Bir tip seçin",
     "participant": "Katılımcı",
     "partnership": "Partner"
   },
-
   "form": {
     "firstName": "Ad",
     "lastName": "Soyad",
     "phone": "Telefon",
     "phonePlaceholder": "555 123 4567",
-    "selectCode": "Ülke Kodunuz",
+    "selectCode": "Kod Seçin",
+    "daysLabel": "Lütfen etkinliğe hangi gün veya günlerde katılım sağlayacağınızı belirtiniz.",
     "age": "Yaş",
-     "eventDays": ["17 Ekim", "18 Ekim", "19 Ekim"],
+    "email": "E-posta",
+    "eventDays": ["17 Ekim", "18 Ekim", "19 Ekim"],
     "organizationTypesList": [
       "Uluslararası Kuruluşlar",
       "Sivil Toplum Kuruluşları (STK)",
@@ -34,34 +35,66 @@
       "Kamu Kurumları",
       "Medya, Platformlar ve Girişimler"
     ],
-    "email": "E-Posta",
-    "jobTitle": "Unvan",
-    "organization": "Kurum",
+    "jobTitle": "Görev/Unvan",
+    "organization": "Kurum/Kuruluş",
     "organizationCountry": "Ülke",
     "organizationType": "Kurum Türü",
-    "selectType": "Tür Seçiniz",
-    "selectCountry": "Bir ülke seçiniz",
+    "selectType": "Tip Seçin",
+    "selectCountry": "Bir ülke seçin",
     "whyAttend": "Neden katılmak istiyorsunuz?",
-    "whyAttendPlaceholder": "Etkinliğimize katılım amacınızı yazabilir misiniz?",
+    "whyAttendPlaceholder": "Etkinliğimize katılma amacınızı kısaca yazar mısınız?",
     "logo": "Logo",
     "profilePhoto": "Profil Fotoğrafı",
-    "uploadHint": "Sürükleyip bırakın veya tıklayarak yükleyin",
+    "uploadHint": "Sürükleyip bırakın ya da yüklemek için tıklayın",
     "uploading": "Yükleniyor…",
-    "uploadSubHint": "PNG/JPG önerilir • Maksimum 5MB",
+    "uploadSubHint": "PNG/JPG önerilir • Maks 5MB",
+    "tcNo": "T.C. Kimlik Numarası",
+    "birthDate": "Doğum Tarihi",
+    "passportId": "Pasaport ID",
+    "passportIssueDate": "Pasaport Veriliş Tarihi",
+    "passportExpiry": "Pasaport Bitiş Tarihi",
+    "passportPhoto": "Pasaport Fotoğrafı",
+    "uploadPassportHint": "Pasaport görselini yüklemek için tıklayın (JPEG/PNG).",
     "terms": {
-      "label": "Kişisel Verilerin Korunması Bildirimi:",
-      "text": "Kişisel verilerimin ilgili yasalara uygun şekilde işlenmesine onay veriyorum.",
-      "link": "KVKK metnini oku"
+      "label": "KVKK Bilgilendirmesi:",
+      "text": "Kişisel verilerimin ilgili mevzuata uygun olarak işlenmesine onay veriyorum.",
+      "link": "KVKK metnini okuyun"
     },
     "submit": "Gönder",
     "submitting": "Gönderiliyor...",
     "success": "Başvurunuz başarıyla alındı!",
     "error": {
       "photo": "Lütfen bir profil fotoğrafı yükleyin.",
-      "code": "Lütfen bir ülke kodu seçiniz.",
-      "participantType": "Lütfen katılımcı türü seçiniz.",
+      "code": "Lütfen ülke kodu seçin.",
+      "participantType": "Lütfen katılımcı tipini seçin.",
       "terms": "Şartları ve koşulları kabul etmelisiniz.",
-      "general": "Bir hata oluştu. Lütfen tekrar deneyiniz."
+      "general": "Bir sorun oluştu. Lütfen tekrar deneyin.",
+      "tcno": "Lütfen geçerli bir T.C. Kimlik Numarası girin.",
+      "birthDate": "Lütfen bir doğum tarihi seçin.",
+      "birthDateFuture": "Doğum tarihi gelecekte olamaz.",
+      "passportId": "Lütfen geçerli bir Pasaport ID girin (6–20 alfasayısal karakter).",
+      "passportIssueDate": "Lütfen pasaport veriliş tarihini seçin.",
+      "passportIssueDateFuture": "Pasaport veriliş tarihi gelecekte olamaz.",
+      "passportIssueAfterExpiry": "Pasaport veriliş tarihi bitiş tarihinden sonra olamaz.",
+      "passportExpiry": "Lütfen pasaport bitiş tarihini seçin.",
+      "passportExpiryPast": "Pasaport bitiş tarihi geçmişte olamaz.",
+      "passportPhoto": "Lütfen bir pasaport fotoğrafı yükleyin.",
+      "invalidImage": "Lütfen geçerli bir görsel dosyası yükleyin (JPEG/PNG).",
+      "fileTooLarge": "Dosya boyutu 5MB'tan küçük olmalıdır.",
+      "country": "Lütfen bir ülke seçin."
+    },
+    "warning": {
+      "enterAccurateName": "Lütfen adınızı ve soyadınızı Pasaport belgenizde yer aldığı şekilde girin.",
+      "enterPersonalPhone": "Lütfen kişisel telefon numaranızı girin.",
+      "enterValidEmail": "Lütfen onay için geçerli bir e-posta adresi girin.",
+      "selectAtLeastOneDay": "Lütfen en az bir katılım günü seçin.",
+      "uploadClearPhoto": "Lütfen net ve güncel bir profil fotoğrafı yükleyin.",
+      "enterValidTCNo": "Lütfen geçerli bir 11 haneli T.C. Kimlik Numarası girin.",
+      "enterValidBirthDate": "Lütfen doğru doğum tarihinizi girin.",
+      "enterValidPassportId": "Lütfen geçerli bir pasaport ID girin (6–20 alfasayısal karakter).",
+      "enterValidIssueDate": "Lütfen doğru pasaport veriliş tarihini girin.",
+      "enterValidExpiryDate": "Lütfen geçerli bir pasaport bitiş tarihi girin.",
+      "uploadClearPassportPhoto": "Lütfen pasaportunuzun net bir görselini yükleyin."
     },
     "loading": "Başvurunuz gönderiliyor..."
   },
@@ -260,16 +293,14 @@
     "zambia": "Zambiya",
     "zimbabwe": "Zimbabve"
   },
-    "footer":{
-    "first":"Tüm hakları saklıdır. Düzenleyen",
-    "last":"Sıfır Atık Vakfı"
+  "footer": {
+    "first": "Tüm hakları saklıdır. Düzenleyen:",
+    "last": "Sıfır Atık Vakfı"
   },
-    "success": {
-    "title": "Başvuru başarıyla gönderildi!",
-    "desc": "Başvurunuz için teşekkür ederiz. En kısa sürede sizinle iletişime geçeceğiz.",
-    "cta": "Foruma geri dön"
-  }
+  "success": {
+    "title": "Başvurunuz başarıyla alındı!",
+    "desc": "Başvurunuz için teşekkürler. En kısa sürede sizinle iletişime geçeceğiz.",
+    "cta": "Forum sayfasına geri dön"
+  },
+  "nameWarning": "Lütfen adınızı ve soyadınızı pasaportunuzda veya resmi kimliğinizde yer aldığı şekilde, eksiksiz ve doğru biçimde giriniz."
 }
-
-
-
