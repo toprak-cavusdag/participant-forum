@@ -265,8 +265,8 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
       const fullPhone = `${formData.countryCode} ${formData.phone}`.trim();
 
       const base = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        firstName: formData.firstName.toUpperCase(),
+        lastName: formData.lastName.toUpperCase(),
         phone: fullPhone,
         email: formData.email,
         description: formData.description,
