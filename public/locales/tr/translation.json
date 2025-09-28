@@ -84,7 +84,7 @@
       "country": "Lütfen bir ülke seçin."
     },
     "warning": {
-      "enterAccurateName": "Lütfen adınızı ve soyadınızı Pasaport belgenizde yer aldığı şekilde girin.",
+      "enterAccurateName": "Lütfen adınızı ve soyadınızı pasaportunuzda göründüğü şekilde doğru ve eksiksiz giriniz (isminizi İngilizce yazınız).",
       "enterPersonalPhone": "Lütfen kişisel telefon numaranızı girin.",
       "enterValidEmail": "Lütfen onay için geçerli bir e-posta adresi girin.",
       "selectAtLeastOneDay": "Lütfen en az bir katılım günü seçin.",

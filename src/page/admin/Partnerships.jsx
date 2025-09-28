@@ -6,6 +6,7 @@ import {
   orderBy,
   doc,
   deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db, storage } from "../../config/firebase";
 import { FaSearch, FaHandshake, FaFileExcel } from "react-icons/fa";
@@ -17,21 +18,137 @@ import TableNull from "../../components/admin/table/TableNull";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import DescriptionCell from "../../components/common/DescriptionCell";
+import { useSelector } from "react-redux";
+
+/* ---------- Gün Normalizasyonu (güçlendirilmiş) ---------- */
+const normalizeDay = (v) => {
+  if (v == null) return null;
+  if (typeof v === "boolean") return null;
+
+  if (typeof v === "number") {
+    const s = String(v).trim();
+    return s.length > 1 ? s : null; // "0"/"1" gibi değersizleri ele
+  }
+
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return null;
+    if (s === "true" || s === "false" || s === "0" || s === "1") return null;
+    return s;
+  }
+
+  // Firestore Timestamp (.toDate)
+  if (typeof v === "object" && typeof v.toDate === "function") {
+    try {
+      return v.toDate().toLocaleDateString("tr-TR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  // Plain seconds/nanoseconds object {seconds, nanoseconds}
+  if (
+    typeof v === "object" &&
+    "seconds" in v &&
+    "nanoseconds" in v &&
+    typeof v.seconds === "number"
+  ) {
+    const ms = v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
+    return new Date(ms).toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  // Genel obje: label/name/day alanlarından oku
+  if (typeof v === "object") {
+    if (v.label) return normalizeDay(String(v.label));
+    if (v.name) return normalizeDay(String(v.name));
+    if (v.day) return normalizeDay(String(v.day));
+    const vals = Object.values(v);
+    if (vals.length === 1) return normalizeDay(vals[0]);
+  }
+
+  try {
+    const s = String(v).trim();
+    if (!s || s === "true" || s === "false" || s === "0" || s === "1")
+      return null;
+    return s;
+  } catch {
+    return null;
+  }
+};
+
+const getDays = (obj) => {
+  const cand =
+    obj?.participationDay ??
+    obj?.participationDays ??
+    obj?.selectedDays ??
+    obj?.days ??
+    obj?.day ??
+    obj;
+
+  if (cand == null) return [];
+
+  let raw = [];
+
+  if (Array.isArray(cand)) {
+    raw = cand;
+  } else if (typeof cand === "object") {
+    const entries = Object.entries(cand);
+    const boolCount = entries.reduce(
+      (acc, [, val]) => acc + (typeof val === "boolean" ? 1 : 0),
+      0
+    );
+
+    // Çoğunluk boolean ise map { "17 Ekim": true } gibi -> true anahtarları gün olarak al
+    if (entries.length > 0 && boolCount / entries.length >= 0.6) {
+      raw = entries.filter(([, val]) => val).map(([key]) => key);
+    } else {
+      // değilse değerleri gün olarak al
+      raw = entries.map(([, val]) => val);
+    }
+  } else if (typeof cand === "string") {
+    raw = cand.split(",").map((s) => s.trim());
+  } else {
+    raw = [cand];
+  }
+
+  const cleaned = raw.map(normalizeDay).filter(Boolean);
+
+  // Tekilleştir (orijinal sıralamayı koru)
+  return Array.from(new Set(cleaned));
+};
 
 const Partnerships = () => {
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Participants ile aynı filtre yapısı
   const [filters, setFilters] = useState({
-    organizationType: "All",
-    organizationCountry: "All",
+    organizationType: "Tümü",
+    organizationCountry: "Tümü",
+    participantType: "Tümü",
   });
+
   const [types, setTypes] = useState([]);
   const [countries, setCountries] = useState([]);
+  const [participantTypes, setParticipantTypes] = useState([]);
+
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const participantsPerPage = 10;
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const participantsPerPage = 15;
+
+  const adminInfo = useSelector((state) => state.user.adminInfo);
+
+  /* ---------- Fetch ---------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -40,10 +157,12 @@ const Partnerships = () => {
           orderBy("createdAt", "desc")
         );
         const snapshot = await getDocs(q);
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
+        const data = snapshot.docs.map((d) => ({
+          id: d.id,
+          collection: "partnership",
+          ...d.data(),
         }));
+
         setParticipants(data);
         setTypes([
           ...new Set(data.map((d) => d.organizationType).filter(Boolean)),
@@ -51,8 +170,12 @@ const Partnerships = () => {
         setCountries([
           ...new Set(data.map((d) => d.organizationCountry).filter(Boolean)),
         ]);
+        setParticipantTypes([
+          ...new Set(data.map((d) => d.participantType).filter(Boolean)),
+        ]);
       } catch (err) {
-        console.error("Data fetch failed", err);
+        console.error("Veri çekme hatası", err);
+        message.error("Bir sorun oluştu. Lütfen tekrar deneyin.");
       } finally {
         setLoading(false);
       }
@@ -62,11 +185,10 @@ const Partnerships = () => {
   }, []);
 
   useEffect(() => {
-    if (searchInput.trim() === "") {
-      setSearchQuery("");
-    }
+    if (searchInput.trim() === "") setSearchQuery("");
   }, [searchInput]);
 
+  /* ---------- Handlers ---------- */
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
     setCurrentPage(1);
@@ -77,30 +199,51 @@ const Partnerships = () => {
     setCurrentPage(1);
   };
 
-  const handleDelete = async (id, photoUrl) => {
+  const handleDelete = async (id, photoUrl, passportPhotoUrl) => {
     try {
       await deleteDoc(doc(db, "partnership", id));
-      if (photoUrl) {
-        const fileRef = ref(storage, photoUrl);
-        await deleteObject(fileRef);
-      }
+      if (photoUrl) await deleteObject(ref(storage, photoUrl));
+      if (passportPhotoUrl) await deleteObject(ref(storage, passportPhotoUrl));
       setParticipants((prev) => prev.filter((p) => p.id !== id));
-      message.success("Partnership and photo deleted successfully.");
+      message.success("Başvuru başarıyla silindi.");
     } catch (error) {
-      console.error("Delete error:", error);
-      message.error("An error occurred while deleting the partnership.");
+      console.error("Silme hatası:", error);
+      message.error("Başvuru silinirken bir hata oluştu.");
     }
   };
 
+  const handleNoteUpdate = async (id, note) => {
+    try {
+      const refDoc = doc(db, "partnership", id);
+      await updateDoc(refDoc, {
+        adminNote: note,
+        noteBy: adminInfo?.firstname || "Admin",
+        noteDate: new Date(),
+      });
+      message.success("Not güncellendi.");
+    } catch (error) {
+      console.error("Not güncelleme hatası:", error);
+      message.error("Not güncellenirken hata oluştu.");
+    }
+  };
+
+  /* ---------- Filter + Search (günler dahil) ---------- */
   const filtered = participants.filter((p) => {
-    const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
-    const searchMatch = fullName.includes(searchQuery.toLowerCase());
+    const fullName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
+    const daysText = getDays(p).join(" ").toLowerCase();
+    const searchTarget = `${fullName} ${daysText} ${p.tcNo ?? ""} ${
+      p.passportId ?? ""
+    } ${p.email ?? ""} ${p.organization ?? ""}`.toLowerCase();
+    const searchMatch = searchTarget.includes(searchQuery.toLowerCase());
+
     return (
       searchMatch &&
-      (filters.organizationType === "All" ||
+      (filters.organizationType === "Tümü" ||
         p.organizationType === filters.organizationType) &&
-      (filters.organizationCountry === "All" ||
-        p.organizationCountry === filters.organizationCountry)
+      (filters.organizationCountry === "Tümü" ||
+        p.organizationCountry === filters.organizationCountry) &&
+      (filters.participantType === "Tümü" ||
+        p.participantType === filters.participantType)
     );
   });
 
@@ -109,65 +252,103 @@ const Partnerships = () => {
   const currentItems = filtered.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filtered.length / participantsPerPage);
 
+  /* ---------- Excel Export ---------- */
   const exportToExcel = () => {
     if (filtered.length === 0) {
-      message.warning("No data to export");
+      message.warning("Dışa aktarılacak veri bulunamadı.");
       return;
     }
 
-    const exportData = filtered.map((p) => ({
-      PhotoURL: p.photoUrl || "—",
-      Name: `${p.firstName} ${p.lastName}`,
-      Email: p.email,
-      Phone: p.phone,
-      Age: p.age,
-      JobTitle: p.jobTitle,
-      Organization: p.organization,
-      OrganizationType: p.organizationType,
-      Country: p.organizationCountry,
-      Description: p.description,
-      SubmittedAt: p.createdAt?.toDate().toLocaleString("tr-TR") || "—",
-    }));
+    const exportData = filtered.map((p) => {
+      const days = getDays(p);
+      return {
+        Ad: p.firstName ?? "",
+        Soyad: p.lastName ?? "",
+        "E-posta": p.email ?? "",
+        Telefon: p.phone ?? "",
+        Yaş: p.age ?? "",
+        "Görev/Unvan": p.jobTitle ?? "",
+        "Kurum/Kuruluş": p.organization ?? "",
+        "Kurum Türü": p.organizationType ?? "",
+        Ülke: p.organizationCountry ?? "",
+        "Katılım Amacı": p.description ?? "",
+        "Katılımcı Tipi": p.participantType ?? "",
+        "T.C. Kimlik No": p.tcNo ?? "",
+        "Doğum Tarihi": p.birthDate ? normalizeDay(p.birthDate) : "",
+        "Pasaport No": p.passportId ?? "",
+        "Pasaport Veriliş Tarihi": p.passportIssueDate
+          ? normalizeDay(p.passportIssueDate)
+          : "",
+        "Pasaport Bitiş Tarihi": p.passportExpiry
+          ? normalizeDay(p.passportExpiry)
+          : "",
+        "Katılım Günleri": days.length > 0 ? days.join(", ") : "—",
+        "Gönderim Tarihi": p.createdAt?.toDate?.()
+          ? p.createdAt.toDate().toLocaleString("tr-TR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "—",
+      };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Partnerships");
-
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Ortaklıklar");
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "Partnerships_FULL.xlsx");
+    saveAs(blob, "Ortakliklar_FULL.xlsx");
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-emerald-700 flex items-center gap-2">
-          <FaHandshake /> Partnerships
+          <FaHandshake /> Ortaklık Başvuruları
         </h2>
-
         <Button
           type="primary"
           icon={<FaFileExcel />}
           className="!bg-green-600"
           onClick={exportToExcel}
         >
-          Export All to Excel
+          Tümünü Excel’e Aktar
         </Button>
       </div>
 
       <p className="text-gray-600 mb-4">
-        Showing <strong>{filtered.length}</strong> out of{" "}
-        <strong>{participants.length}</strong> partnerships
+        Gösterilen: <strong>{filtered.length}</strong> / Toplam:{" "}
+        <strong>{participants.length}</strong> ortaklık
       </p>
 
       <div className="flex flex-wrap gap-4 mb-4 items-center">
+        <select
+          name="participantType"
+          value={filters.participantType}
+          onChange={handleFilterChange}
+          className="border border-slate-100 shadow p-2 rounded"
+        >
+          <option value="Tümü">Tüm Katılımcı Tipleri</option>
+          {participantTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+
         <select
           name="organizationType"
           value={filters.organizationType}
           onChange={handleFilterChange}
           className="border border-slate-100 shadow p-2 rounded"
         >
-          <option value="All">All Organization Types</option>
+          <option value="Tümü">Tüm Kurum Türleri</option>
           {types.map((type) => (
             <option key={type} value={type}>
               {type}
@@ -181,7 +362,7 @@ const Partnerships = () => {
           onChange={handleFilterChange}
           className="border border-slate-100 shadow p-2 rounded"
         >
-          <option value="All">All Countries</option>
+          <option value="Tümü">Tüm Ülkeler</option>
           {countries.map((country) => (
             <option key={country} value={country}>
               {country}
@@ -192,7 +373,7 @@ const Partnerships = () => {
         <div className="flex items-center border border-slate-100 shadow rounded overflow-hidden">
           <input
             type="text"
-            placeholder="Search by name..."
+            placeholder="İsim, gün, T.C. No veya Pasaport No ile ara…"
             className="p-2 outline-none"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
@@ -209,64 +390,148 @@ const Partnerships = () => {
       {loading ? (
         <TableLoading />
       ) : currentItems.length === 0 ? (
-        <TableNull />
+        <TableNull text="Kayıt bulunamadı." />
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="min-w-[2000px] border border-gray-200 text-sm">
+            <table className="min-w-[2500px] w-full border border-gray-200 text-sm">
               <thead className="bg-emerald-100 text-emerald-800">
                 <tr>
-                  <th className="px-4 py-2 text-left">Photo</th>
-                  <th className="px-4 py-2 text-left">Name</th>
-                  <th className="px-4 py-2 text-left">Email</th>
-                  <th className="px-4 py-2 text-left">Phone</th>
-                  <th className="px-4 py-2 text-left">Age</th>
-                  <th className="px-4 py-2 text-left">Job Title</th>
-                  <th className="px-4 py-2 text-left">Organization</th>
-                  <th className="px-4 py-2 text-left">Organization Type</th>
-                  <th className="px-4 py-2 text-left">Country</th>
-                  <th className="px-4 py-2 text-left">Description</th>
-                  <th className="px-4 py-2 text-left">Submitted At</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
+                  <th className="px-4 py-2 text-left">Fotoğraf</th>
+                  <th className="px-4 py-2 text-left">Ad</th>
+                  <th className="px-4 py-2 text-left">Soyad</th>
+                  <th className="px-4 py-2 text-left">E-posta</th>
+                  <th className="px-4 py-2 text-left">Telefon</th>
+                  <th className="px-4 py-2 text-left">Yaş</th>
+                  <th className="px-4 py-2 text-left">Görev/Unvan</th>
+                  <th className="px-4 py-2 text-left">Kurum/Kuruluş</th>
+                  <th className="px-4 py-2 text-left">Kurum Türü</th>
+                  <th className="px-4 py-2 text-left">Ülke</th>
+                  <th className="px-4 py-2 text-left">Katılım Amacı</th>
+                  <th className="px-4 py-2 text-left">Katılımcı Tipi</th>
+                  <th className="px-4 py-2 text-left">T.C. Kimlik No</th>
+                  <th className="px-4 py-2 text-left">Doğum Tarihi</th>
+                  <th className="px-4 py-2 text-left">Pasaport No</th>
+                  <th className="px-4 py-2 text-left">
+                    Pasaport Veriliş Tarihi
+                  </th>
+                  <th className="px-4 py-2 text-left">Pasaport Bitiş Tarihi</th>
+                  <th className="px-4 py-2 text-left">Pasaport Fotoğrafı</th>
+                  <th className="px-4 py-2 text-left">Katılım Günleri</th>
+                  <th className="px-4 py-2 text-left">Gönderim Tarihi</th>
+                  <th className="px-4 py-2 text-left">İşlemler</th>
                 </tr>
               </thead>
               <tbody>
-                {currentItems.map((p) => (
-                  <tr key={p.id} className="hover:bg-emerald-50 border-b border-slate-200">
-                    <td className="px-4 py-2">
-                      {p.photoUrl ? (
-                        <Image
-                          src={p.photoUrl}
-                          alt={`${p.firstName} ${p.lastName}`}
-                          width={50}
-                          height={50}
-                          className="h-10 w-10 object-cover rounded-full"
-                        />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {p.firstName} {p.lastName}
-                    </td>
-                    <td className="px-4 py-2">{p.email}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">{p.phone}</td>
-                    <td className="px-4 py-2">{p.age}</td>
-                    <td className="px-4 py-2">{p.jobTitle}</td>
-                    <td className="px-4 py-2">{p.organization}</td>
-                    <td className="px-4 py-2">{p.organizationType}</td>
-                    <td className="px-4 py-2">{p.organizationCountry}</td>
-                    <DescriptionCell text={p.description} />
-                    <td className="px-4 py-2 text-gray-600  font-semibold">
-                      {p.createdAt?.toDate().toLocaleString("tr-TR") || "—"}
-                    </td>
-                    <td className="px-4 py-2">
-                      <PopConfirmDelete
-                        onConfirm={() => handleDelete(p.id, p.photoUrl)}
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {currentItems.map((p) => {
+                  const days = getDays(p);
+                  return (
+                    <tr
+                      key={p.id}
+                      className="hover:bg-emerald-50 border-b border-slate-200"
+                    >
+                      <td className="px-4 py-2">
+                        {p.photoUrl ? (
+                          <Image
+                            src={p.photoUrl}
+                            alt={`${p.firstName ?? ""} ${p.lastName ?? ""}`}
+                            width={50}
+                            height={50}
+                            className="h-10 w-10 object-cover rounded-full"
+                          />
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-2">{p.firstName ?? "—"}</td>
+                      <td className="px-4 py-2">{p.lastName ?? "—"}</td>
+                      <td className="px-4 py-2">{p.email ?? "—"}</td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        {p.phone ?? "—"}
+                      </td>
+                      <td className="px-4 py-2">{p.age ?? "—"}</td>
+                      <td className="px-4 py-2">{p.jobTitle ?? "—"}</td>
+                      <td className="px-4 py-2">{p.organization ?? "—"}</td>
+                      <td className="px-4 py-2">{p.organizationType ?? "—"}</td>
+                      <td className="px-4 py-2">
+                        {p.organizationCountry ?? "—"}
+                      </td>
+                      <DescriptionCell text={p.description} />
+                      <td className="px-4 py-2">{p.participantType ?? "—"}</td>
+                      <td className="px-4 py-2">{p.tcNo ?? "—"}</td>
+                      <td className="px-4 py-2">
+                        {p.birthDate ? normalizeDay(p.birthDate) : "—"}
+                      </td>
+                      <td className="px-4 py-2">{p.passportId ?? "—"}</td>
+                      <td className="px-4 py-2">
+                        {p.passportIssueDate
+                          ? normalizeDay(p.passportIssueDate)
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2">
+                        {p.passportExpiry
+                          ? normalizeDay(p.passportExpiry)
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2">
+                        {p.passportPhotoUrl ? (
+                          <Image
+                            src={p.passportPhotoUrl}
+                            width={50}
+                            height={50}
+                            className="h-10 w-10 object-cover rounded"
+                          />
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        {days.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {days.map((day, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700"
+                              >
+                                {day}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-2 font-semibold text-gray-600">
+                        {p.createdAt?.toDate?.()
+                          ? p.createdAt.toDate().toLocaleString("tr-TR", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex flex-col gap-2">
+                          <PopConfirmDelete
+                            onConfirm={() =>
+                              handleDelete(p.id, p.photoUrl, p.passportPhotoUrl)
+                            }
+                          />
+                          <textarea
+                            className="w-44 border text-xs p-2 rounded shadow-sm"
+                            placeholder="Not yaz..."
+                            defaultValue={p.adminNote || ""}
+                            onBlur={(e) =>
+                              handleNoteUpdate(p.id, e.target.value)
+                            }
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

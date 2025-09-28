@@ -84,7 +84,7 @@
       "country": "Please select a country."
     },
     "warning": {
-      "enterAccurateName": "Please enter your name exactly as it appears on your Pasaport.",
+      "enterAccurateName": "Please enter your full name exactly as it appears on your passport (write your name in English).",
       "enterPersonalPhone": "Please enter your personal phone number.",
       "enterValidEmail": "Please enter a valid email address for confirmation.",
       "selectAtLeastOneDay": "Please select at least one participation day.",

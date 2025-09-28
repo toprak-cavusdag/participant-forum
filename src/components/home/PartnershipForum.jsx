@@ -47,21 +47,28 @@ const validateTCNo = (tcNo) => {
 
 const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
   const { t, i18n } = useTranslation();
+
+  // Gün listesi (çevirilerden)
+  const eventDays = useMemo(() => t("form.eventDays", { returnObjects: true }) || [], [t]);
+
   const countriesDict = t("countries", { returnObjects: true }) || {};
-  const organizationTypes = useMemo(() => t("form.organizationTypesList", { returnObjects: true }), [t]);
+  const organizationTypes = useMemo(
+    () => t("form.organizationTypesList", { returnObjects: true }) || [],
+    [t]
+  );
 
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     phone: "",
     countryCode: "",
-    age: "",
     email: "",
     description: "",
     organization: "",
     organizationCountry: "",
     jobTitle: "",
     organizationType: "",
+    selectedDays: [],            // ✅ eklendi
     participantType: "Partnership",
     photo: null,
     termsAccepted: false,
@@ -108,6 +115,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
   const handleChange = (e) => {
     const { name, value, files, type, checked } = e.target;
 
+    // ✅ Foto / Pasaport foto
     if (name === "photo" || name === "passportPhoto") {
       const file = files?.[0];
       if (file) {
@@ -129,11 +137,27 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
       return;
     }
 
+    // ✅ Katılım günleri (checkbox çoklu seçim)
+    if (type === "checkbox" && name === "selectedDays") {
+      setFormData((prev) => {
+        const has = prev.selectedDays.includes(value);
+        return {
+          ...prev,
+          selectedDays: checked
+            ? (has ? prev.selectedDays : [...prev.selectedDays, value])
+            : prev.selectedDays.filter((d) => d !== value),
+        };
+      });
+      return;
+    }
+
+    // ✅ Diğer checkbox'lar (termsAccepted gibi)
     if (type === "checkbox") {
       setFormData((prev) => ({ ...prev, [name]: checked }));
       return;
     }
 
+    // ✅ Text/Select vb.
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -142,12 +166,13 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
     email,
     title,
     organization,
+    participationDay,
   }) => {
     try {
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
         import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        { name, email, title, organization },
+        { name, email, title, organization, participationDay },
         import.meta.env.VITE_EMAILJS_USER_ID
       );
       console.log("✅ Confirmation email sent successfully");
@@ -220,6 +245,11 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
     if (!formData.termsAccepted) return toast.error(t("form.error.terms"));
     if (!formData.organizationCountry) return toast.error(t("form.error.country") || "Lütfen bir ülke seçin.");
 
+    // ✅ en az bir katılım günü seçimi zorunlu
+    if (!formData.selectedDays || formData.selectedDays.length === 0) {
+      return toast.error(t("form.error.days") || "Lütfen en az bir katılım günü seçin.");
+    }
+
     if (inTR) {
       if (!validateTR()) return;
     } else {
@@ -236,10 +266,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
 
       let passportPhotoUrl = null;
       if (!inTR && formData.passportPhoto) {
-        const passRef = ref(
-          storage,
-          `passports/${Date.now()}-${formData.passportPhoto.name}`
-        );
+        const passRef = ref(storage, `passports/${Date.now()}-${formData.passportPhoto.name}`);
         await uploadBytes(passRef, formData.passportPhoto);
         passportPhotoUrl = await getDownloadURL(passRef);
       }
@@ -250,13 +277,13 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: fullPhone,
-        age: formData.age,
         email: formData.email,
         description: formData.description,
         organization: formData.organization,
         organizationCountry: formData.organizationCountry,
         jobTitle: formData.jobTitle,
         organizationType: formData.organizationType,
+        selectedDays: formData.selectedDays, // ✅ Firestore'a yaz
         participantType: formData.participantType,
         photoUrl,
         createdAt: serverTimestamp(),
@@ -288,11 +315,13 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
 
       await addDoc(collection(db, "partnership"), userData);
 
+      // İstersen seçilen günleri mail içeriğine de gönderelim
       await sendConfirmationEmail({
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
         title: formData.jobTitle,
         organization: formData.organization,
+        participationDay: formData.selectedDays.join(", "),
       });
 
       toast.success(t("form.success"), { id: toastId });
@@ -303,13 +332,13 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
         lastName: "",
         phone: "",
         countryCode: "",
-        age: "",
         email: "",
         description: "",
         organization: "",
         organizationCountry: "",
         jobTitle: "",
         organizationType: "",
+        selectedDays: [], // ✅ reset
         participantType: "Partnership",
         photo: null,
         termsAccepted: false,
@@ -360,7 +389,9 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               required
               disabled={loading}
             />
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterAccurateName") || "Lütfen adınızı ve soyadınızı kimlik belgenizde yer aldığı şekilde girin."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterAccurateName") || "Lütfen adınızı ve soyadınızı kimlik belgenizde yer aldığı şekilde girin."}
+            </p>
           </div>
           <div>
             <Field
@@ -371,8 +402,11 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               required
               disabled={loading}
             />
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterAccurateName") || "Lütfen adınızı ve soyadınızı kimlik belgenizde yer aldığı şekilde girin."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterAccurateName") || "Lütfen adınızı ve soyadınızı kimlik belgenizde yer aldığı şekilde girin."}
+            </p>
           </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.phone")} <span className="text-red-500">*</span>
@@ -403,18 +437,29 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 disabled={loading}
               />
             </div>
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterPersonalPhone") || "Lütfen kişisel telefon numaranızı girin."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterPersonalPhone") || "Lütfen kişisel telefon numaranızı girin."}
+            </p>
           </div>
-          <Field
-            label={t("form.age")}
-            name="age"
-            type="number"
-            value={formData.age}
-            onChange={handleChange}
-            required
-            min={16}
-            disabled={loading}
-          />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("form.birthDate") || "Doğum Tarihi"} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              name="birthDate"
+              value={formData.birthDate}
+              onChange={handleChange}
+              className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+              disabled={loading}
+            />
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterValidBirthDate") || "Lütfen doğru doğum tarihinizi girin."}
+            </p>
+          </div>
+
           <div>
             <Field
               label={t("form.email")}
@@ -425,8 +470,11 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               required
               disabled={loading}
             />
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidEmail") || "Lütfen onay için geçerli bir e-posta adresi girin."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterValidEmail") || "Lütfen onay için geçerli bir e-posta adresi girin."}
+            </p>
           </div>
+
           <Field
             label={t("form.jobTitle")}
             name="jobTitle"
@@ -435,6 +483,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             required
             disabled={loading}
           />
+
           <Field
             label={t("form.organization")}
             name="organization"
@@ -443,6 +492,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             required
             disabled={loading}
           />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.organizationCountry")} <span className="text-red-500">*</span>
@@ -451,10 +501,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               name="organizationCountry"
               value={formData.organizationCountry}
               onChange={(e) =>
-                setFormData((p) => ({
-                  ...p,
-                  organizationCountry: e.target.value,
-                }))
+                setFormData((p) => ({ ...p, organizationCountry: e.target.value }))
               }
               className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
               required
@@ -470,6 +517,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               ))}
             </select>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.organizationType")} <span className="text-red-500">*</span>
@@ -492,20 +540,33 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               ))}
             </select>
           </div>
+
+          {/* ✅ Katılım Günleri (selectedDays) */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.whyAttend")}
+              {t("form.daysLabel") || "Katılım Günleri"} <span className="text-red-500">*</span>
             </label>
-            <textarea
-              name="description"
-              rows={3}
-              placeholder={t("form.whyAttendPlaceholder")}
-              className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              value={formData.description}
-              onChange={handleChange}
-              disabled={loading}
-            />
+            <div className="flex mt-2 gap-2 flex-wrap">
+              {eventDays.map((day, idx) => (
+                <label key={idx} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="selectedDays"
+                    value={day}
+                    checked={formData.selectedDays.includes(day)}
+                    onChange={handleChange}
+                    className="checkbox-custom disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loading}
+                  />
+                  <span>{day}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.selectAtLeastOneDay") || "Lütfen en az bir katılım günü seçin."}
+            </p>
           </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.logo")} <span className="text-red-500">*</span>
@@ -517,25 +578,11 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 (e.key === "Enter" || e.key === " ") && fileInputRef.current?.click()
               }
               onClick={() => fileInputRef.current?.click()}
-              onDragEnter={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(true);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(true);
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(false);
-              }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); }}
               onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(false);
+                e.preventDefault(); e.stopPropagation(); setDragActive(false);
                 const files = e.dataTransfer?.files;
                 if (files && files.length) {
                   handleChange({ target: { name: "photo", files } });
@@ -550,10 +597,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 loading && "opacity-60 pointer-events-none",
               ].join(" ")}
             >
-              <FiUploadCloud
-                size={48}
-                className={`mb-3 ${dragActive ? "text-indigo-500" : "text-gray-400"}`}
-              />
+              <FiUploadCloud size={48} className={`mb-3 ${dragActive ? "text-indigo-500" : "text-gray-400"}`} />
               <p className="text-sm sm:text-base font-medium text-gray-800">
                 {loading ? t("form.uploading") : t("form.uploadHint")}
               </p>
@@ -570,18 +614,17 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 disabled={loading}
               />
               {dragActive && (
-                <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-indigo-400/60"></div>
+                <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-indigo-400/60" />
               )}
             </div>
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.uploadClearPhoto") || "Lütfen net ve güncel bir profil fotoğrafı yükleyin."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.uploadClearPhoto") || "Lütfen net ve güncel bir profil fotoğrafı yükleyin."}
+            </p>
             {preview && (
-              <img
-                src={preview}
-                alt="Preview"
-                className="mt-2 h-32 w-32 object-cover rounded border"
-              />
+              <img src={preview} alt="Preview" className="mt-2 h-32 w-32 object-cover rounded border" />
             )}
           </div>
+
           {inTR ? (
             <>
               <div>
@@ -593,22 +636,9 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   required
                   disabled={loading}
                 />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidTCNo") || "Lütfen geçerli bir 11 haneli T.C. Kimlik Numarası girin."}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("form.birthDate") || "Doğum Tarihi"} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="birthDate"
-                  value={formData.birthDate}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                  required
-                  disabled={loading}
-                />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidBirthDate") || "Lütfen doğru doğum tarihinizi girin."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.enterValidTCNo") || "Lütfen geçerli bir 11 haneli T.C. Kimlik Numarası girin."}
+                </p>
               </div>
             </>
           ) : (
@@ -622,7 +652,9 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   required
                   disabled={loading}
                 />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidPassportId") || "Lütfen geçerli bir pasaport ID girin (6–20 alfasayısal karakter)."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.enterValidPassportId") || "Lütfen geçerli bir pasaport ID girin (6–20 alfasayısal karakter)."}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -637,7 +669,9 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   required
                   disabled={loading}
                 />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidIssueDate") || "Lütfen doğru pasaport veriliş tarihini girin."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.enterValidIssueDate") || "Lütfen doğru pasaport veriliş tarihini girin."}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -652,7 +686,9 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   required
                   disabled={loading}
                 />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidExpiryDate") || "Lütfen geçerli bir pasaport bitiş tarihi girin."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.enterValidExpiryDate") || "Lütfen geçerli bir pasaport bitiş tarihi girin."}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -661,30 +697,13 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 <div
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) =>
-                    (e.key === "Enter" || e.key === " ") &&
-                    passportFileInputRef.current?.click()
-                  }
+                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && passportFileInputRef.current?.click()}
                   onClick={() => passportFileInputRef.current?.click()}
-                  onDragEnter={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDragActive(true);
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDragActive(true);
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDragActive(false);
-                  }}
+                  onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); }}
                   onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDragActive(false);
+                    e.preventDefault(); e.stopPropagation(); setDragActive(false);
                     const files = e.dataTransfer?.files;
                     if (files && files.length) {
                       handleChange({ target: { name: "passportPhoto", files } });
@@ -701,8 +720,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 >
                   <FiUploadCloud size={40} className="mb-2 text-gray-400" />
                   <p className="text-sm sm:text-base font-medium text-gray-800">
-                    {t("form.uploadPassportHint") ||
-                      "Pasaport görselini yüklemek için tıklayın (JPEG/PNG)."}
+                    {t("form.uploadPassportHint") || "Pasaport görselini yüklemek için tıklayın (JPEG/PNG)."}
                   </p>
                   <input
                     ref={passportFileInputRef}
@@ -714,20 +732,19 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                     disabled={loading}
                   />
                   {dragActive && (
-                    <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-indigo-400/60"></div>
+                    <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-indigo-400/60" />
                   )}
                 </div>
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.uploadClearPassportPhoto") || "Lütfen pasaportunuzun net bir görselini yükleyin."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.uploadClearPassportPhoto") || "Lütfen pasaportunuzun net bir görselini yükleyin."}
+                </p>
                 {passportPreview && (
-                  <img
-                    src={passportPreview}
-                    alt="Passport Preview"
-                    className="mt-2 h-36 w-48 object-cover rounded border"
-                  />
+                  <img src={passportPreview} alt="Passport Preview" className="mt-2 h-36 w-48 object-cover rounded border" />
                 )}
               </div>
             </>
           )}
+
           <div className="md:col-span-2 flex items-start gap-4">
             <input
               type="checkbox"
@@ -739,22 +756,17 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             />
             <label className="text-sm text-gray-700 leading-5">
               <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
-              <Link
-                to="/zero-waste-kvkk"
-                target="_blank"
-                className="text-emerald-600 underline text-sm"
-              >
+              <Link to="/zero-waste-kvkk" target="_blank" className="text-emerald-600 underline text-sm">
                 {t("form.terms.link")}
               </Link>
             </label>
           </div>
+
           <div className="md:col-span-2">
             <button
               type="submit"
               className={`w-full py-2 rounded transition ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-emerald-600 hover:bg-emerald-700"
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"
               } text-white`}
               disabled={loading}
             >

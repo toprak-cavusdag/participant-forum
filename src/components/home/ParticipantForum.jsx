@@ -56,7 +56,6 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     lastName: "",
     phone: "",
     countryCode: "",
-    age: "",
     email: "",
     description: "",
     organization: "",
@@ -269,7 +268,6 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: fullPhone,
-        age: formData.age,
         email: formData.email,
         description: formData.description,
         organization: formData.organization,
@@ -324,7 +322,6 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
         lastName: "",
         phone: "",
         countryCode: "",
-        age: "",
         email: "",
         description: "",
         organization: "",
@@ -427,16 +424,21 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             </div>
             <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterPersonalPhone") || "Please enter your personal phone number."}</p>
           </div>
-          <Field
-            label={t("form.age")}
-            name="age"
-            type="number"
-            value={formData.age}
-            onChange={handleChange}
-            required
-            min={16}
-            disabled={loading}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("form.birthDate") || "Doğum Tarihi"} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              name="birthDate"
+              value={formData.birthDate}
+              onChange={handleChange}
+              className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+              disabled={loading}
+            />
+            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidBirthDate") || "Please enter your correct birth date."}</p>
+          </div>
           <div>
             <Field
               label={t("form.email")}
@@ -638,21 +640,6 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                   disabled={loading}
                 />
                 <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidTCNo") || "Please enter a valid 11-digit T.C. Kimlik No."}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("form.birthDate") || "Doğum Tarihi"} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="birthDate"
-                  value={formData.birthDate}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                  required
-                  disabled={loading}
-                />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidBirthDate") || "Please enter your correct birth date."}</p>
               </div>
             </>
           ) : (
