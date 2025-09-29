@@ -121,7 +121,7 @@ const Participants = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const collections = ["participant", "partnership"];
+        const collections = ["participant"];
         let allData = [];
 
         for (const coll of collections) {

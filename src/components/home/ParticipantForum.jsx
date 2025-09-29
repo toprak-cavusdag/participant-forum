@@ -46,13 +46,20 @@ const validateTCNo = (tcNo) => {
 };
 
 // ✅ Ülke kodu doğrulama (datalist için)
-const validateCountryCode = (code, list) => list.some((c) => c.phoneCode === code);
+const validateCountryCode = (code, list) =>
+  list.some((c) => c.phoneCode === code);
 
 const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const { t, i18n } = useTranslation();
   const countriesDict = t("countries", { returnObjects: true }) || {};
-  const eventDays = useMemo(() => t("form.eventDays", { returnObjects: true }), [t]);
-  const organizationTypes = useMemo(() => t("form.organizationTypesList", { returnObjects: true }), [t]);
+  const eventDays = useMemo(
+    () => t("form.eventDays", { returnObjects: true }),
+    [t]
+  );
+  const organizationTypes = useMemo(
+    () => t("form.organizationTypesList", { returnObjects: true }),
+    [t]
+  );
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -125,11 +132,16 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
       const file = files?.[0];
       if (file) {
         if (!file.type.startsWith("image/")) {
-          toast.error(t("form.error.invalidImage") || "Please upload a valid image file (JPEG/PNG).");
+          toast.error(
+            t("form.error.invalidImage") ||
+              "Please upload a valid image file (JPEG/PNG)."
+          );
           return;
         }
         if (file.size > 5 * 1024 * 1024) {
-          toast.error(t("form.error.fileTooLarge") || "File size must be less than 5MB.");
+          toast.error(
+            t("form.error.fileTooLarge") || "File size must be less than 5MB."
+          );
           return;
         }
       }
@@ -168,7 +180,9 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const handleCodeBlur = () => {
     if (!formData.countryCode) return;
     if (!validateCountryCode(formData.countryCode, codeList)) {
-      toast.error(t("form.error.code") || "Please select a valid country code (e.g. +90).");
+      toast.error(
+        t("form.error.code") || "Please select a valid country code (e.g. +90)."
+      );
     }
   };
 
@@ -193,7 +207,9 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
 
   const validateTR = () => {
     if (!validateTCNo(formData.tcNo)) {
-      toast.error(t("form.error.tcno") || "Lütfen geçerli bir T.C. Kimlik No giriniz.");
+      toast.error(
+        t("form.error.tcno") || "Lütfen geçerli bir T.C. Kimlik No giriniz."
+      );
       return false;
     }
     if (!formData.birthDate) {
@@ -203,7 +219,9 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     const today = new Date();
     const birthDate = new Date(formData.birthDate);
     if (birthDate > today) {
-      toast.error(t("form.error.birthDateFuture") || "Doğum tarihi gelecekte olamaz.");
+      toast.error(
+        t("form.error.birthDateFuture") || "Doğum tarihi gelecekte olamaz."
+      );
       return false;
     }
     return true;
@@ -212,35 +230,52 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
   const validatePassport = () => {
     if (!/^[A-Za-z0-9]{6,20}$/.test(formData.passportId?.trim())) {
       toast.error(
-        t("form.error.passportId") || "Please enter a valid Passport ID (6-20 alphanumeric characters)."
+        t("form.error.passportId") ||
+          "Please enter a valid Passport ID (6-20 alphanumeric characters)."
       );
       return false;
     }
     if (!formData.passportIssueDate) {
-      toast.error(t("form.error.passportIssueDate") || "Please select passport issuance date.");
+      toast.error(
+        t("form.error.passportIssueDate") ||
+          "Please select passport issuance date."
+      );
       return false;
     }
     if (!formData.passportExpiry) {
-      toast.error(t("form.error.passportExpiry") || "Please select passport expiry date.");
+      toast.error(
+        t("form.error.passportExpiry") || "Please select passport expiry date."
+      );
       return false;
     }
     const today = new Date();
     const issueDate = new Date(formData.passportIssueDate);
     const expiryDate = new Date(formData.passportExpiry);
     if (issueDate > today) {
-      toast.error(t("form.error.passportIssueDateFuture") || "Passport issuance date cannot be in the future.");
+      toast.error(
+        t("form.error.passportIssueDateFuture") ||
+          "Passport issuance date cannot be in the future."
+      );
       return false;
     }
     if (expiryDate < today) {
-      toast.error(t("form.error.passportExpiryPast") || "Passport expiry date cannot be in the past.");
+      toast.error(
+        t("form.error.passportExpiryPast") ||
+          "Passport expiry date cannot be in the past."
+      );
       return false;
     }
     if (issueDate > expiryDate) {
-      toast.error(t("form.error.passportIssueAfterExpiry") || "Passport issuance date cannot be after expiry date.");
+      toast.error(
+        t("form.error.passportIssueAfterExpiry") ||
+          "Passport issuance date cannot be after expiry date."
+      );
       return false;
     }
     if (!formData.passportPhoto) {
-      toast.error(t("form.error.passportPhoto") || "Please upload passport photo.");
+      toast.error(
+        t("form.error.passportPhoto") || "Please upload passport photo."
+      );
       return false;
     }
     return true;
@@ -252,7 +287,9 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     if (!formData.photo) return toast.error(t("form.error.photo"));
     if (!formData.countryCode) return toast.error(t("form.error.code"));
     if (!validateCountryCode(formData.countryCode, codeList))
-      return toast.error(t("form.error.code") || "Please select a valid country code (e.g. +90).");
+      return toast.error(
+        t("form.error.code") || "Please select a valid country code (e.g. +90)."
+      );
     if (!formData.participantType)
       return toast.error(t("form.error.participantType"));
     if (!formData.termsAccepted) return toast.error(t("form.error.terms"));
@@ -270,7 +307,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     const toastId = toast.loading(t("form.loading"));
 
     try {
-      const imageRef = ref(storage, `photos/${Date.now()}-${formData.photo.name}`);
+      const imageRef = ref(
+        storage,
+        `photos/${Date.now()}-${formData.photo.name}`
+      );
       await uploadBytes(imageRef, formData.photo);
       const photoUrl = await getDownloadURL(imageRef);
 
@@ -401,7 +441,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               required
               disabled={loading}
             />
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterAccurateName") || "Please enter your name exactly as it appears on your ID."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterAccurateName") ||
+                "Please enter your name exactly as it appears on your ID."}
+            </p>
           </div>
 
           <div>
@@ -413,7 +456,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               required
               disabled={loading}
             />
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterAccurateName") || "Please enter your surname exactly as it appears on your ID."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterAccurateSurname") ||
+                "Please enter your surname exactly as it appears on your ID."}
+            </p>
           </div>
 
           {/* ✅ Telefon + Ülke Kodu (datalist ile aramalı) */}
@@ -429,7 +475,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                   value={formData.countryCode}
                   onChange={handleChange}
                   onBlur={handleCodeBlur}
-                  placeholder={t("form.selectCode") || "Search country code (e.g. +90, Türkiye)"}
+                  placeholder={
+                    t("form.selectCode") ||
+                    "Search country code (e.g. +90, Türkiye)"
+                  }
                   className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={loading}
                   required
@@ -456,12 +505,16 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                 disabled={loading}
               />
             </div>
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterPersonalPhone") || "Please enter your personal phone number."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterPersonalPhone") ||
+                "Please enter your personal phone number."}
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.birthDate") || "Doğum Tarihi"} <span className="text-red-500">*</span>
+              {t("form.birthDate") || "Doğum Tarihi"}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -472,7 +525,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               required
               disabled={loading}
             />
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidBirthDate") || "Please enter your correct birth date."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterValidBirthDate") ||
+                "Please enter your correct birth date."}
+            </p>
           </div>
 
           <div>
@@ -485,7 +541,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               required
               disabled={loading}
             />
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidEmail") || "Please enter a valid email address for confirmation."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.enterValidEmail") ||
+                "Please enter a valid email address for confirmation."}
+            </p>
           </div>
 
           <Field
@@ -508,7 +567,8 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.organizationCountry")} <span className="text-red-500">*</span>
+              {t("form.organizationCountry")}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="organizationCountry"
@@ -536,7 +596,8 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.organizationType")} <span className="text-red-500">*</span>
+              {t("form.organizationType")}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="organizationType"
@@ -578,7 +639,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                 </label>
               ))}
             </div>
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.selectAtLeastOneDay") || "Please select at least one participation day."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.selectAtLeastOneDay") ||
+                "Please select at least one participation day."}
+            </p>
           </div>
 
           <div className="md:col-span-2">
@@ -604,7 +668,8 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               role="button"
               tabIndex={0}
               onKeyDown={(e) =>
-                (e.key === "Enter" || e.key === " ") && fileInputRef.current?.click()
+                (e.key === "Enter" || e.key === " ") &&
+                fileInputRef.current?.click()
               }
               onClick={() => fileInputRef.current?.click()}
               onDragEnter={(e) => {
@@ -642,7 +707,9 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             >
               <FiUploadCloud
                 size={48}
-                className={`mb-3 ${dragActive ? "text-indigo-500" : "text-gray-400"}`}
+                className={`mb-3 ${
+                  dragActive ? "text-indigo-500" : "text-gray-400"
+                }`}
               />
               <p className="text-sm sm:text-base font-medium text-gray-800">
                 {loading ? t("form.uploading") : t("form.uploadHint")}
@@ -663,7 +730,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                 <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-indigo-400/60"></div>
               )}
             </div>
-            <p className="text-sm text-slate-600 mt-1">{t("form.warning.uploadClearPhoto") || "Please upload a clear and recent profile photo."}</p>
+            <p className="text-sm text-slate-600 mt-1">
+              {t("form.warning.uploadClearPhoto") ||
+                "Please upload a clear and recent profile photo."}
+            </p>
             {preview && (
               <img
                 src={preview}
@@ -684,7 +754,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                   required
                   disabled={loading}
                 />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidTCNo") || "Please enter a valid 11-digit T.C. Kimlik No."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.enterValidTCNo") ||
+                    "Please enter a valid 11-digit T.C. Kimlik No."}
+                </p>
               </div>
             </>
           ) : (
@@ -698,11 +771,15 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                   required
                   disabled={loading}
                 />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidPassportId") || "Please enter a valid passport ID (6-20 alphanumeric characters)."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.enterValidPassportId") ||
+                    "Please enter a valid passport ID (6-20 alphanumeric characters)."}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("form.passportIssueDate") || "Passport Issuance Date"} <span className="text-red-500">*</span>
+                  {t("form.passportIssueDate") || "Passport Issuance Date"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -713,11 +790,15 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                   required
                   disabled={loading}
                 />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidIssueDate") || "Please enter the correct passport issuance date."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.enterValidIssueDate") ||
+                    "Please enter the correct passport issuance date."}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("form.passportExpiry") || "Passport Expiry Date"} <span className="text-red-500">*</span>
+                  {t("form.passportExpiry") || "Passport Expiry Date"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -728,11 +809,15 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                   required
                   disabled={loading}
                 />
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.enterValidExpiryDate") || "Please enter a valid passport expiry date."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.enterValidExpiryDate") ||
+                    "Please enter a valid passport expiry date."}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("form.passportPhoto") || "Passport Photo"} <span className="text-red-500">*</span>
+                  {t("form.passportPhoto") || "Passport Photo"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <div
                   role="button"
@@ -763,7 +848,9 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                     setDragActive(false);
                     const files = e.dataTransfer?.files;
                     if (files && files.length) {
-                      handleChange({ target: { name: "passportPhoto", files } });
+                      handleChange({
+                        target: { name: "passportPhoto", files },
+                      });
                     }
                   }}
                   className={[
@@ -793,7 +880,10 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
                     <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-indigo-400/60"></div>
                   )}
                 </div>
-                <p className="text-sm text-slate-600 mt-1">{t("form.warning.uploadClearPassportPhoto") || "Please upload a clear image of your passport."}</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {t("form.warning.uploadClearPassportPhoto") ||
+                    "Please upload a clear image of your passport."}
+                </p>
                 {passportPreview && (
                   <img
                     src={passportPreview}
@@ -805,27 +895,30 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             </>
           )}
 
-<div className="md:col-span-2 flex items-start gap-4">
-  <input
-    type="checkbox"
-    name="termsAccepted"
-    checked={formData.termsAccepted}
-    onChange={handleChange}
-    className="checkbox-custom disabled:opacity-50 disabled:cursor-not-allowed"
-    disabled={loading}
-  />
-  <label className="text-sm text-gray-700 leading-5">
-    <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
-    <Link
-      to={i18n.language === "tr" ? "/zero-waste-kvkk" : "/zero-waste-gdpr"}
-      target="_blank"
-      className="text-emerald-600 underline text-sm"
-    >
-      {t("form.terms.link")}
-    </Link>
-  </label>
-</div>
-
+          <div className="md:col-span-2 flex items-start gap-4">
+            <input
+              type="checkbox"
+              name="termsAccepted"
+              checked={formData.termsAccepted}
+              onChange={handleChange}
+              className="checkbox-custom disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+            />
+            <label className="text-sm text-gray-700 leading-5">
+              <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
+              <Link
+                to={
+                  i18n.language === "tr"
+                    ? "/zero-waste-kvkk"
+                    : "/zero-waste-gdpr"
+                }
+                target="_blank"
+                className="text-emerald-600 underline text-sm"
+              >
+                {t("form.terms.link")}
+              </Link>
+            </label>
+          </div>
 
           <div className="md:col-span-2">
             <button

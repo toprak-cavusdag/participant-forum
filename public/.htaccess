@@ -1,0 +1,16 @@
+# React Router DOM için .htaccess
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # index.html'e direkt erişim varsa engelleme
+  RewriteRule ^index\.html$ - [L]
+
+  # Eğer dosya ya da dizin mevcut değilse
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Tüm istekleri index.html'e yönlendir
+  RewriteRule . /index.html [L]
+</IfModule>

@@ -44,7 +44,7 @@
     "selectCountry": "Select a Country",
     "whyAttend": "Why would you like to attend?",
     "whyAttendPlaceholder": "Could you please write down your purpose for attending our event?",
-    "logo": "Logo",
+    "logo": "Corporate Logo",
     "profilePhoto": "Profile Photo",
     "uploadHint": "Drag & drop or click to upload",
     "uploading": "Uploading…",
@@ -86,6 +86,7 @@
     },
     "warning": {
       "enterAccurateName": "Please enter your full name exactly as it appears on your passport (write your name in English).",
+      "enterAccurateSurname": "Please enter your full surname exactly as it appears on your passport (write your name in English).",
       "enterPersonalPhone": "Please enter your personal phone number.",
       "enterValidEmail": "Please enter a valid email address for confirmation.",
       "selectAtLeastOneDay": "Please select at least one participation day.",
