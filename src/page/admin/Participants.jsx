@@ -117,7 +117,6 @@ const Participants = () => {
     return [];
   };
 
-  /* ---------------- Fetch ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -136,9 +135,7 @@ const Participants = () => {
         }
 
         setParticipants(allData);
-        setTypes([
-          ...new Set(allData.map((d) => d.organizationType).filter(Boolean)),
-        ]);
+        setTypes([...new Set(allData.map((d) => d.organizationType).filter(Boolean))]);
         setCountries([
           ...new Set(allData.map((d) => d.organizationCountry).filter(Boolean)),
         ]);
@@ -218,12 +215,10 @@ const Participants = () => {
 
     return (
       searchMatch &&
-      (filters.organizationType === "Tümü" ||
-        p.organizationType === filters.organizationType) &&
+      (filters.organizationType === "Tümü" || p.organizationType === filters.organizationType) &&
       (filters.organizationCountry === "Tümü" ||
         p.organizationCountry === filters.organizationCountry) &&
-      (filters.participantType === "Tümü" ||
-        p.participantType === filters.participantType)
+      (filters.participantType === "Tümü" || p.participantType === filters.participantType)
     );
   });
 
@@ -242,15 +237,14 @@ const Participants = () => {
     const exportData = filtered.map((p) => {
       const days = getDays(p);
       return {
-        "Ad": p.firstName ?? "",
-        "Soyad": p.lastName ?? "",
+        Ad: p.firstName ?? "",
+        Soyad: p.lastName ?? "",
         "E-posta": p.email ?? "",
-        "Telefon": p.phone ?? "",
-        "Yaş": p.age ?? "",
+        Telefon: p.phone ?? "",
         "Görev/Unvan": p.jobTitle ?? "",
         "Kurum/Kuruluş": p.organization ?? "",
         "Kurum Türü": p.organizationType ?? "",
-        "Ülke": p.organizationCountry ?? "",
+        Ülke: p.organizationCountry ?? "",
         "Katılım Amacı": p.description ?? "",
         "Katılımcı Tipi": p.participantType ?? "",
         "T.C. Kimlik No": p.tcNo ?? "",
@@ -280,235 +274,284 @@ const Participants = () => {
     saveAs(blob, "Katilimcilar_FULL.xlsx");
   };
 
-  /* ---------------- UI ---------------- */
+  /* ---------------- UI (Redesigned) ---------------- */
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-emerald-700 flex items-center gap-2">
-          <FaUser /> Katılımcılar
-        </h2>
-        <Button
-          type="primary"
-          icon={<FaFileExcel />}
-          className="!bg-green-600"
-          onClick={exportToExcel}
-        >
-          Tümünü Excel’e Aktar
-        </Button>
-      </div>
+    <div className="rounded-2xl border border-emerald-100/60 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-t-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 opacity-90" />
+        <div className="relative px-6 md:px-8 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex items-center gap-3 text-white">
+            <div className="h-10 w-10 grid place-items-center rounded-xl bg-white/15 ring-1 ring-white/20">
+              <FaUser className="text-white text-lg" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-semibold">Katılımcılar</h2>
+              <p className="text-white/80 text-sm">
+                Gösterilen <b>{filtered.length}</b> / Toplam <b>{participants.length}</b>
+              </p>
+            </div>
+          </div>
 
-      <p className="text-gray-600 mb-4">
-        Gösterilen: <strong>{filtered.length}</strong> / Toplam:{" "}
-        <strong>{participants.length}</strong> katılımcı
-      </p>
-
-      <div className="flex flex-wrap gap-4 mb-4 items-center">
-        <select
-          name="participantType"
-          value={filters.participantType}
-          onChange={handleFilterChange}
-          className="border border-slate-100 shadow p-2 rounded"
-        >
-          <option value="Tümü">Tüm Katılımcı Tipleri</option>
-          {participantTypes.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="organizationType"
-          value={filters.organizationType}
-          onChange={handleFilterChange}
-          className="border border-slate-100 shadow p-2 rounded"
-        >
-          <option value="Tümü">Tüm Kurum Türleri</option>
-          {types.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="organizationCountry"
-          value={filters.organizationCountry}
-          onChange={handleFilterChange}
-          className="border border-slate-100 shadow p-2 rounded"
-        >
-          <option value="Tümü">Tüm Ülkeler</option>
-          {countries.map((country) => (
-            <option key={country} value={country}>
-              {country}
-            </option>
-          ))}
-        </select>
-
-        <div className="flex items-center border border-slate-100 shadow rounded overflow-hidden">
-          <input
-            type="text"
-            placeholder="İsim, gün, T.C. No veya Pasaport No ile ara…"
-            className="p-2 outline-none"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-          <button
-            onClick={handleSearch}
-            className="p-2 border rounded-full text-white hover:bg-emerald-700 bg-emerald-500 transition"
-          >
-            <FaSearch />
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="primary"
+              icon={<FaFileExcel />}
+              className="!bg-white !text-emerald-700 !border-none !px-4 !h-10 hover:!bg-emerald-50"
+              onClick={exportToExcel}
+            >
+              Excel’e Aktar
+            </Button>
+          </div>
         </div>
       </div>
 
-      {loading ? (
-        <TableLoading />
-      ) : currentItems.length === 0 ? (
-        <div className="text-gray-500">Katılımcı bulunamadı.</div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="min-w-[2500px] w-full border border-gray-200 text-sm">
-              <thead className="bg-emerald-100 text-emerald-800">
-                <tr>
-                  <th className="px-4 py-2 text-left">Fotoğraf</th>
-                  <th className="px-4 py-2 text-left">Ad</th>
-                  <th className="px-4 py-2 text-left">Soyad</th>
-                  <th className="px-4 py-2 text-left">E-posta</th>
-                  <th className="px-4 py-2 text-left">Telefon</th>
-                  <th className="px-4 py-2 text-left">Yaş</th>
-                  <th className="px-4 py-2 text-left">Görev/Unvan</th>
-                  <th className="px-4 py-2 text-left">Kurum/Kuruluş</th>
-                  <th className="px-4 py-2 text-left">Kurum Türü</th>
-                  <th className="px-4 py-2 text-left">Ülke</th>
-                  <th className="px-4 py-2 text-left">Katılım Amacı</th>
-                  <th className="px-4 py-2 text-left">Katılımcı Tipi</th>
-                  <th className="px-4 py-2 text-left">T.C. Kimlik No</th>
-                  <th className="px-4 py-2 text-left">Doğum Tarihi</th>
-                  <th className="px-4 py-2 text-left">Pasaport No</th>
-                  <th className="px-4 py-2 text-left">Pasaport Veriliş Tarihi</th>
-                  <th className="px-4 py-2 text-left">Pasaport Bitiş Tarihi</th>
-                  <th className="px-4 py-2 text-left">Pasaport Fotoğrafı</th>
-                  <th className="px-4 py-2 text-left">Katılım Günleri</th>
-                  <th className="px-4 py-2 text-left">Gönderim Tarihi</th>
-                  <th className="px-4 py-2 text-left">İşlemler</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentItems.map((p) => {
-                  const days = getDays(p);
-                  return (
-                    <tr
-                      key={`${p.collection}-${p.id}`}
-                      className="hover:bg-emerald-50 border-b border-slate-200"
-                    >
-                      <td className="px-4 py-2">
-                        {p.photoUrl ? (
-                          <Image
-                            src={p.photoUrl}
-                            width={50}
-                            height={50}
-                            className="h-10 w-10 object-cover rounded-full"
-                          />
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-4 py-2">{p.firstName ?? "—"}</td>
-                      <td className="px-4 py-2">{p.lastName ?? "—"}</td>
-                      <td className="px-4 py-2">{p.email ?? "—"}</td>
-                      <td className="px-4 py-2 w-fit whitespace-nowrap">{p.phone ?? "—"}</td>
-                      <td className="px-4 py-2">{p.age ?? "—"}</td>
-                      <td className="px-4 py-2">{p.jobTitle ?? "—"}</td>
-                      <td className="px-4 py-2">{p.organization ?? "—"}</td>
-                      <td className="px-4 py-2">{p.organizationType ?? "—"}</td>
-                      <td className="px-4 py-2">{p.organizationCountry ?? "—"}</td>
-                      <DescriptionCell text={p.description} />
-                      <td className="px-4 py-2">{p.participantType ?? "—"}</td>
-                      <td className="px-4 py-2">{p.tcNo ?? "—"}</td>
-                      <td className="px-4 py-2">{p.birthDate ? normalizeDay(p.birthDate) : "—"}</td>
-                      <td className="px-4 py-2">{p.passportId ?? "—"}</td>
-                      <td className="px-4 py-2">{p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "—"}</td>
-                      <td className="px-4 py-2">{p.passportExpiry ? normalizeDay(p.passportExpiry) : "—"}</td>
-                      <td className="px-4 py-2">
-                        {p.passportPhotoUrl ? (
-                          <Image
-                            src={p.passportPhotoUrl}
-                            width={50}
-                            height={50}
-                            className="h-10 w-10 object-cover rounded"
-                          />
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-4 py-2">
-                        {days.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {days.map((day, i) => (
-                              <span
-                                key={i}
-                                className="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700"
-                              >
-                                {day}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-4 py-2 font-semibold text-gray-600">
-                        {p.createdAt
-                          ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="flex flex-col gap-2">
-                          <PopConfirmDelete
-                            onConfirm={() =>
-                              handleDelete(p.id, p.collection, p.photoUrl, p.passportPhotoUrl)
-                            }
-                          />
-                          <textarea
-                            className="w-44 border text-xs p-2 rounded shadow-sm"
-                            placeholder="Not yaz..."
-                            defaultValue={p.adminNote || ""}
-                            onBlur={(e) => handleNoteUpdate(p.id, p.collection, e.target.value)}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {/* Toolbar */}
+      <div className="px-6 md:px-8 py-5">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          {/* Search */}
+          <div className="md:col-span-5">
+            <div className="flex items-stretch gap-2">
+              <div className="relative flex-1">
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="İsim, gün, T.C. No veya Pasaport No ile ara…"
+                  className="w-full pl-9 pr-3 h-10 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-300 transition"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                />
+              </div>
+              <button
+                onClick={handleSearch}
+                className="h-10 px-4 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition"
+              >
+                Ara
+              </button>
+            </div>
           </div>
 
-          <div className="flex justify-center mt-4 gap-2">
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 rounded ${
-                  currentPage === i + 1
-                    ? "bg-emerald-600 text-white"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+          {/* Filters */}
+          <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <select
+              name="organizationType"
+              value={filters.organizationType}
+              onChange={handleFilterChange}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-300"
+            >
+              <option value="Tümü">Tüm Kurum Türleri</option>
+              {types.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+
+            <select
+              name="organizationCountry"
+              value={filters.organizationCountry}
+              onChange={handleFilterChange}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-300"
+            >
+              <option value="Tümü">Tüm Ülkeler</option>
+              {countries.map((country) => (
+                <option key={country} value={country}>
+                  {country}
+                </option>
+              ))}
+            </select>
+
+            <select
+              name="participantType"
+              value={filters.participantType}
+              onChange={handleFilterChange}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-300"
+            >
+              <option value="Tümü">Tüm Katılımcı Tipleri</option>
+              {participantTypes.map((pt) => (
+                <option key={pt} value={pt}>
+                  {pt}
+                </option>
+              ))}
+            </select>
           </div>
-        </>
-      )}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="px-3 md:px-6 pb-6">
+        {loading ? (
+          <TableLoading />
+        ) : currentItems.length === 0 ? (
+          <div className="text-gray-500 px-3 py-10 text-center border border-dashed rounded-xl">
+            Kriterlere uygun katılımcı bulunamadı.
+          </div>
+        ) : (
+          <>
+            <div className="overflow-auto rounded-xl border border-slate-200">
+              <table className="min-w-[1900px] w-full text-sm">
+                <thead className="bg-gradient-to-r from-emerald-50 to-teal-50 sticky top-0 z-10">
+                  <tr className="text-slate-700">
+                    {[
+                      "Fotoğraf",
+                      "Ad",
+                      "Soyad",
+                      "E-posta",
+                      "Telefon",
+                      "Görev/Unvan",
+                      "Kurum/Kuruluş",
+                      "Kurum Türü",
+                      "Ülke",
+                      "Katılım Amacı",
+                      "Katılımcı Tipi",
+                      "T.C. Kimlik No",
+                      "Doğum Tarihi",
+                      "Pasaport No",
+                      "Pasaport Veriliş Tarihi",
+                      "Pasaport Bitiş Tarihi",
+                      "Pasaport Fotoğrafı",
+                      "Katılım Günleri",
+                      "Gönderim Tarihi",
+                      "İşlemler",
+                    ].map((h) => (
+                      <th key={h} className="px-3 py-3 text-left font-semibold whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {currentItems.map((p) => {
+                    const days = getDays(p);
+                    return (
+                      <tr
+                        key={`${p.collection}-${p.id}`}
+                        className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/60 transition"
+                      >
+                        <td className="px-3 py-3">
+                          {p.photoUrl ? (
+                            <Image
+                              src={p.photoUrl}
+                              width={40}
+                              height={40}
+                              className="h-10 w-10 object-cover rounded-full ring-2 ring-white shadow"
+                            />
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="px-3 py-3 font-medium text-slate-800">{p.firstName ?? "—"}</td>
+                        <td className="px-3 py-3">{p.lastName ?? "—"}</td>
+                        <td className="px-3 py-3 whitespace-nowrap">{p.email ?? "—"}</td>
+                        <td className="px-3 py-3 whitespace-nowrap">{p.phone ?? "—"}</td>
+                        <td className="px-3 py-3">{p.jobTitle ?? "—"}</td>
+                        <td className="px-3 py-3">{p.organization ?? "—"}</td>
+                        <td className="px-3 py-3">{p.organizationType ?? "—"}</td>
+                        <td className="px-3 py-3">{p.organizationCountry ?? "—"}</td>
+
+                        <DescriptionCell text={p.description} />
+
+                        <td className="px-3 py-3">{p.participantType ?? "—"}</td>
+                        <td className="px-3 py-3">{p.tcNo ?? "—"}</td>
+                        <td className="px-3 py-3">{p.birthDate ? normalizeDay(p.birthDate) : "—"}</td>
+                        <td className="px-3 py-3">{p.passportId ?? "—"}</td>
+                        <td className="px-3 py-3">
+                          {p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "—"}
+                        </td>
+                        <td className="px-3 py-3">
+                          {p.passportExpiry ? normalizeDay(p.passportExpiry) : "—"}
+                        </td>
+
+                        <td className="px-3 py-3">
+                          {p.passportPhotoUrl ? (
+                            <Image
+                              src={p.passportPhotoUrl}
+                              width={44}
+                              height={44}
+                              className="h-11 w-11 object-cover rounded-lg ring-1 ring-slate-200"
+                            />
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="px-3 py-3">
+                          {days.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {days.map((day, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2.5 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
+                                >
+                                  {day}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="px-3 py-3 font-medium text-slate-700">
+                          {p.createdAt
+                            ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "—"}
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <div className="flex flex-col gap-2">
+                            <PopConfirmDelete
+                              onConfirm={() =>
+                                handleDelete(p.id, p.collection, p.photoUrl, p.passportPhotoUrl)
+                              }
+                            />
+                            <textarea
+                              className="w-48 min-h-20 border border-slate-200 text-xs p-2 rounded-lg focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                              placeholder="Not yaz..."
+                              defaultValue={p.adminNote || ""}
+                              onBlur={(e) => handleNoteUpdate(p.id, p.collection, e.target.value)}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-center mt-5">
+              <nav className="inline-flex rounded-xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
+                {[...Array(totalPages)].map((_, i) => {
+                  const active = currentPage === i + 1;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`px-3.5 py-2 text-sm ${
+                        active
+                          ? "bg-emerald-600 text-white"
+                          : "bg-white text-slate-700 hover:bg-slate-50"
+                      } ${i !== totalPages - 1 ? "border-r border-slate-200" : ""}`}
+                    >
+                      {i + 1}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };
