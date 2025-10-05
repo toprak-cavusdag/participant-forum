@@ -304,5 +304,13 @@
     "desc": "Thank you for your submission. We'll get back to you shortly.",
     "cta": "Go back to forum page"
   },
-  "nameWarning": "Please enter your first and last name exactly as they appear on your passport or official identification."
+  "nameWarning": "Please enter your first and last name exactly as they appear on your passport or official identification.",
+  "closed": {
+    "title": "Registrations are closed",
+    "subtitle": "We have reached the participation limit. Thank you for your interest.",
+    "body": "Form submissions are disabled for now. You can still browse event details and follow our announcements.",
+    "announcements": "See announcements",
+    "contact": "Contact us",
+    "note": "If registrations reopen, the form will appear here automatically."
+  }
 }

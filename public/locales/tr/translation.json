@@ -304,5 +304,13 @@
     "desc": "Başvurunuz için teşekkürler. En kısa sürede sizinle iletişime geçeceğiz.",
     "cta": "Forum sayfasına geri dön"
   },
-  "nameWarning": "Lütfen adınızı ve soyadınızı pasaportunuzda veya resmi kimliğinizde yer aldığı şekilde, eksiksiz ve doğru biçimde giriniz."
+  "nameWarning": "Lütfen adınızı ve soyadınızı pasaportunuzda veya resmi kimliğinizde yer aldığı şekilde, eksiksiz ve doğru biçimde giriniz.",
+  "closed": {
+    "title": "Kayıtlar kapandı",
+    "subtitle": "Katılımcı kotasına ulaşıldı. İlginiz için teşekkür ederiz.",
+    "body": "Form gönderimleri şimdilik devre dışı. Etkinlik detaylarını inceleyebilir ve duyurularımızı takip edebilirsiniz.",
+    "announcements": "Duyuruları gör",
+    "contact": "İletişime geç",
+    "note": "Kayıtlar yeniden açılırsa form bu alanda otomatik görünecek."
+  }
 }
