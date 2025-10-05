@@ -11,7 +11,7 @@ import {
 import { db, storage } from "../../config/firebase";
 import { FaUser, FaSearch, FaFileExcel } from "react-icons/fa";
 import { deleteObject, ref } from "firebase/storage";
-import { Image, message, Button } from "antd";
+import { Image, message, Button, Tooltip } from "antd";
 import PopConfirmDelete from "../../components/common/PopConfirmDelete";
 import { useSelector } from "react-redux";
 import TableLoading from "../../components/admin/table/TableLoading";
@@ -38,6 +38,10 @@ const Participants = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const participantsPerPage = 15;
+
+  // Yeni: görünüm ve ayırıcı
+  const [viewMode, setViewMode] = useState("table"); // 'table' | 'inline'
+  const [delimiterKey, setDelimiterKey] = useState("tab"); // 'tab' | 'pipe'
 
   const adminInfo = useSelector((state) => state.user.adminInfo);
 
@@ -211,7 +215,7 @@ const Participants = () => {
     const fullName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
     const daysText = getDays(p).join(" ").toLowerCase();
     const searchTarget = `${fullName} ${daysText} ${p.tcNo ?? ""} ${p.passportId ?? ""}`.trim();
-    const searchMatch = searchTarget.includes(searchQuery.toLowerCase());
+    const searchMatch = searchTarget.includes((searchQuery || "").toLowerCase());
 
     return (
       searchMatch &&
@@ -237,6 +241,7 @@ const Participants = () => {
     const exportData = filtered.map((p) => {
       const days = getDays(p);
       return {
+        Fotoğraf: p.photoUrl ?? "",
         Ad: p.firstName ?? "",
         Soyad: p.lastName ?? "",
         "E-posta": p.email ?? "",
@@ -252,6 +257,7 @@ const Participants = () => {
         "Pasaport No": p.passportId ?? "",
         "Pasaport Veriliş Tarihi": p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "",
         "Pasaport Bitiş Tarihi": p.passportExpiry ? normalizeDay(p.passportExpiry) : "",
+        "Pasaport Fotoğrafı": p.passportPhotoUrl ?? "",
         "Katılım Günleri": days.length > 0 ? days.join(", ") : "—",
         "Gönderim Tarihi": p.createdAt
           ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
@@ -268,13 +274,93 @@ const Participants = () => {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Katılımcılar");
-
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(blob, "Katilimcilar_FULL.xlsx");
   };
 
-  /* ---------------- UI (Redesigned) ---------------- */
+  /* ---------------- Inline formatter & copy helpers ---------------- */
+  const delimiter = delimiterKey === "tab" ? "\t" : " | ";
+
+  const inlineHeaders = [
+    "Fotoğraf",
+    "Ad",
+    "Soyad",
+    "E-posta",
+    "Telefon",
+    "Görev/Unvan",
+    "Kurum/Kuruluş",
+    "Kurum Türü",
+    "Ülke",
+    "Katılım Amacı",
+    "Katılımcı Tipi",
+    "T.C. Kimlik No",
+    "Doğum Tarihi",
+    "Pasaport No",
+    "Pasaport Veriliş",
+    "Pasaport Bitiş",
+    "Pasaport Fotoğrafı",
+    "Katılım Günleri",
+    "Gönderim Tarihi",
+  ];
+
+  const formatParticipantInline = (p) => {
+    const days = getDays(p);
+    const created = p.createdAt
+      ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—";
+
+    const row = [
+      p.photoUrl ?? "—",
+      p.firstName ?? "—",
+      p.lastName ?? "—",
+      p.email ?? "—",
+      p.phone ?? "—",
+      p.jobTitle ?? "—",
+      p.organization ?? "—",
+      p.organizationType ?? "—",
+      p.organizationCountry ?? "—",
+      (p.description ?? "—").toString().replace(/\s+/g, " ").trim(),
+      p.participantType ?? "—",
+      p.tcNo ?? "—",
+      p.birthDate ? normalizeDay(p.birthDate) : "—",
+      p.passportId ?? "—",
+      p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "—",
+      p.passportExpiry ? normalizeDay(p.passportExpiry) : "—",
+      p.passportPhotoUrl ?? "—",
+      days.length > 0 ? days.join("; ") : "—",
+      created,
+    ];
+
+    return row.join(delimiter);
+  };
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success("Kopyalandı.");
+    } catch {
+      message.warning("Tarayıcı kopyalama engelledi. Metni manuel seçip kopyalayın.");
+    }
+  };
+
+  const copyCurrentPage = () => {
+    const lines = currentItems.map(formatParticipantInline).join("\n");
+    copyText(lines);
+  };
+
+  const copyAllFiltered = () => {
+    const lines = filtered.map(formatParticipantInline).join("\n");
+    copyText(lines);
+  };
+
+  /* ---------------- UI ---------------- */
   return (
     <div className="rounded-2xl border border-emerald-100/60 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
       {/* Header */}
@@ -293,15 +379,46 @@ const Participants = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="primary"
-              icon={<FaFileExcel />}
-              className="!bg-white !text-emerald-700 !border-none !px-4 !h-10 hover:!bg-emerald-50"
-              onClick={exportToExcel}
-            >
-              Excel’e Aktar
-            </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Görünüm geçişi */}
+            <div className="flex items-center bg-white/15 rounded-xl overflow-hidden ring-1 ring-white/30">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`px-3 py-2 text-sm ${viewMode === "table" ? "bg-white text-emerald-700" : "text-white/90"}`}
+              >
+                Tablo
+              </button>
+              <button
+                onClick={() => setViewMode("inline")}
+                className={`px-3 py-2 text-sm ${viewMode === "inline" ? "bg-white text-emerald-700" : "text-white/90"}`}
+              >
+                Satır Satır
+              </button>
+            </div>
+
+            {/* Ayırıcı seçimi */}
+            <div className="flex items-center gap-2 bg-white/15 rounded-xl px-2 py-1 ring-1 ring-white/30">
+              <span className="text-white/90 text-sm">Ayırıcı:</span>
+              <select
+                value={delimiterKey}
+                onChange={(e) => setDelimiterKey(e.target.value)}
+                className="bg-transparent text-white text-sm focus:outline-none"
+              >
+                <option value="tab">Tab</option>
+                <option value="pipe">Dikey çizgi (|)</option>
+              </select>
+            </div>
+
+            <Tooltip title="Excel’e aktar">
+              <Button
+                type="primary"
+                icon={<FaFileExcel />}
+                className="!bg-white !text-emerald-700 !border-none !px-4 !h-10 hover:!bg-emerald-50"
+                onClick={exportToExcel}
+              >
+                Excel’e Aktar
+              </Button>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -377,17 +494,31 @@ const Participants = () => {
             </select>
           </div>
         </div>
+
+        {/* Kopyalama butonları */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button onClick={copyCurrentPage} className="!h-9">
+            Bu Sayfadakileri Kopyala
+          </Button>
+          <Button onClick={copyAllFiltered} className="!h-9">
+            Filtrelenen Tümünü Kopyala
+          </Button>
+          <div className="text-xs text-slate-500 self-center">
+            İpucu: Ayırıcıyı “Tab” seçersen Excel/Sheets’e yapıştırma daha temiz olur.
+          </div>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* CONTENT */}
       <div className="px-3 md:px-6 pb-6">
         {loading ? (
           <TableLoading />
-        ) : currentItems.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="text-gray-500 px-3 py-10 text-center border border-dashed rounded-xl">
             Kriterlere uygun katılımcı bulunamadı.
           </div>
-        ) : (
+        ) : viewMode === "table" ? (
+          /* Tablo görünümü */
           <>
             <div className="overflow-auto rounded-xl border border-slate-200">
               <table className="min-w-[1900px] w-full text-sm">
@@ -441,7 +572,6 @@ const Participants = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-
                         <td className="px-3 py-3 font-medium text-slate-800">{p.firstName ?? "—"}</td>
                         <td className="px-3 py-3">{p.lastName ?? "—"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">{p.email ?? "—"}</td>
@@ -450,9 +580,7 @@ const Participants = () => {
                         <td className="px-3 py-3">{p.organization ?? "—"}</td>
                         <td className="px-3 py-3">{p.organizationType ?? "—"}</td>
                         <td className="px-3 py-3">{p.organizationCountry ?? "—"}</td>
-
                         <DescriptionCell text={p.description} />
-
                         <td className="px-3 py-3">{p.participantType ?? "—"}</td>
                         <td className="px-3 py-3">{p.tcNo ?? "—"}</td>
                         <td className="px-3 py-3">{p.birthDate ? normalizeDay(p.birthDate) : "—"}</td>
@@ -463,7 +591,6 @@ const Participants = () => {
                         <td className="px-3 py-3">
                           {p.passportExpiry ? normalizeDay(p.passportExpiry) : "—"}
                         </td>
-
                         <td className="px-3 py-3">
                           {p.passportPhotoUrl ? (
                             <Image
@@ -476,7 +603,6 @@ const Participants = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-
                         <td className="px-3 py-3">
                           {days.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
@@ -493,7 +619,6 @@ const Participants = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-
                         <td className="px-3 py-3 font-medium text-slate-700">
                           {p.createdAt
                             ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
@@ -505,7 +630,6 @@ const Participants = () => {
                               })
                             : "—"}
                         </td>
-
                         <td className="px-3 py-3">
                           <div className="flex flex-col gap-2">
                             <PopConfirmDelete
@@ -526,6 +650,48 @@ const Participants = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-center mt-5">
+              <nav className="inline-flex rounded-xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
+                {[...Array(totalPages)].map((_, i) => {
+                  const active = currentPage === i + 1;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`px-3.5 py-2 text-sm ${
+                        active
+                          ? "bg-emerald-600 text-white"
+                          : "bg-white text-slate-700 hover:bg-slate-50"
+                      } ${i !== totalPages - 1 ? "border-r border-slate-200" : ""}`}
+                    >
+                      {i + 1}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </>
+        ) : (
+          /* Satır Satır (yan yana) görünüm */
+          <>
+            <div className="rounded-xl border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 px-4 py-2 text-xs text-slate-600">
+                Sütunlar: {inlineHeaders.join("  ·  ")}
+              </div>
+              <div className="max-h-[70vh] overflow-auto font-mono text-sm">
+                {currentItems.map((p) => (
+                  <div
+                    key={`${p.collection}-${p.id}`}
+                    className="px-4 py-2 border-b border-slate-100 hover:bg-emerald-50/40 cursor-text select-text"
+                    title="Seçip kopyalayabilirsiniz"
+                  >
+                    {formatParticipantInline(p)}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Pagination */}
