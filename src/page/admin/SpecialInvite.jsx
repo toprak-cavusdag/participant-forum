@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { Image, message, Button } from "antd";
-import { FaSearch, FaFileExcel, FaUsers } from "react-icons/fa";
+import { FaSearch, FaFileExcel, FaUsers, FaStar } from "react-icons/fa";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -214,7 +214,7 @@ export default function SpecialPartners() {
         <div className="relative px-6 md:px-8 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-3 text-white">
             <div className="h-10 w-10 grid place-items-center rounded-xl bg-white/15 ring-1 ring-white/20">
-              <FaUsers className="text-white text-lg" />
+              <FaStar className="text-white text-lg" />
             </div>
             <div>
               <h2 className="text-xl md:text-2xl font-semibold">Özel Firma Başvuruları</h2>
