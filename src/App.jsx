@@ -8,6 +8,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import Partnerships from "./page/admin/Partnerships";
 import KVKKTR from "./components/home/KVKKTR";
 import GDPR from "./components/home/GDPR";
+import SpecialPartners from "./page/admin/SpecialInvite";
 
 const App = () => {
   return (
@@ -32,6 +33,7 @@ const App = () => {
         >
           <Route path="participants" element={<Participants />} />
           <Route path="partnership" element={<Partnerships />} />
+          <Route path="special-partnership" element={<SpecialPartners />} />
           <Route path="*" element={<Partnerships />} />
         </Route>
       </Routes>

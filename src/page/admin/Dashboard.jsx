@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom";
-import { FaUsers } from "react-icons/fa";
+import { FaStar, FaUsers } from "react-icons/fa";
 import LogoutButton from "../../components/admin/LogoutButton";
 import { FaHandshake } from "react-icons/fa";
 import NavbarWelcomer from "../../components/admin/NavbarWelcomer";
@@ -48,6 +48,21 @@ const DashboardLayout = () => {
               >
                 <FaHandshake className="text-xl" />
                 <span>Partnerships</span>
+              </NavLink>
+            </li>
+                        <li>
+              <NavLink
+                to="/dashboard/special-partnership"
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 text-base font-medium rounded-lg px-3 py-2 transition-colors ${
+                    isActive
+                      ? "bg-emerald-50 text-emerald-500"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <FaStar className="text-xl" />
+                <span>Special Invitee</span>
               </NavLink>
             </li>
           </ul>
