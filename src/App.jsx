@@ -9,6 +9,10 @@ import Partnerships from "./page/admin/Partnerships";
 import KVKKTR from "./components/home/KVKKTR";
 import GDPR from "./components/home/GDPR";
 import SpecialPartners from "./page/admin/SpecialInvite";
+import WebParticipant from "./page/admin/WebParticipant";
+import PrivateSessions from "./page/admin/PrivateSessions";
+import Academia from "./page/admin/Academia";
+import Staff from "./page/admin/Staff";
 
 const App = () => {
   return (
@@ -32,8 +36,12 @@ const App = () => {
           }
         >
           <Route path="participants" element={<Participants />} />
+          <Route path="academics" element={<Academia />} />
           <Route path="partnership" element={<Partnerships />} />
+          <Route path="web-registered" element={<WebParticipant />} />
           <Route path="special-partnership" element={<SpecialPartners />} />
+          <Route path="private-sessions" element={<PrivateSessions />} />
+          <Route path="mihmandarlar" element={<Staff />} />
           <Route path="*" element={<Partnerships />} />
         </Route>
       </Routes>

@@ -8,11 +8,9 @@ import {
   deleteDoc,
   updateDoc,
 } from "firebase/firestore";
-import { db, storage } from "../../config/firebase";
+import { db } from "../../config/firebase";
 import { FaSearch, FaHandshake, FaFileExcel } from "react-icons/fa";
-import { deleteObject, ref } from "firebase/storage";
 import { Image, message, Button } from "antd";
-import PopConfirmDelete from "../../components/common/PopConfirmDelete";
 import TableLoading from "../../components/admin/table/TableLoading";
 import TableNull from "../../components/admin/table/TableNull";
 import * as XLSX from "xlsx";
@@ -20,7 +18,53 @@ import { saveAs } from "file-saver";
 import DescriptionCell from "../../components/common/DescriptionCell";
 import { useSelector } from "react-redux";
 
-/* ---------- Gün Normalizasyonu ---------- */
+/* ---------- Yardımcılar ---------- */
+const fmtDate = (v) => {
+  if (!v) return "—";
+  try {
+    const d =
+      typeof v?.toDate === "function"
+        ? v.toDate()
+        : typeof v === "string"
+        ? new Date(v)
+        : v instanceof Date
+        ? v
+        : new Date(
+            (v.seconds || 0) * 1000 + Math.floor(((v.nanoseconds || 0) / 1e6) || 0)
+          );
+    if (isNaN(d)) return "—";
+    return d.toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+};
+
+const fmtTime = (v) => {
+  if (!v) return "—";
+  try {
+    const d =
+      typeof v?.toDate === "function"
+        ? v.toDate()
+        : typeof v === "string"
+        ? new Date(v)
+        : v instanceof Date
+        ? v
+        : new Date(
+            (v.seconds || 0) * 1000 + Math.floor(((v.nanoseconds || 0) / 1e6) || 0)
+          );
+    if (isNaN(d)) return "—";
+    return d
+      .toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+      .replace(".", ":");
+  } catch {
+    return "—";
+  }
+};
+
 const normalizeDay = (v) => {
   if (v == null) return null;
   if (typeof v === "boolean") return null;
@@ -33,20 +77,12 @@ const normalizeDay = (v) => {
   if (typeof v === "string") {
     const s = v.trim();
     if (!s) return null;
-    if (s === "true" || s === "false" || s === "0" || s === "1") return null;
+    if (["true", "false", "0", "1"].includes(s)) return null;
     return s;
   }
 
   if (typeof v === "object" && typeof v.toDate === "function") {
-    try {
-      return v.toDate().toLocaleDateString("tr-TR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return null;
-    }
+    return fmtDate(v);
   }
 
   if (
@@ -55,12 +91,7 @@ const normalizeDay = (v) => {
     "nanoseconds" in v &&
     typeof v.seconds === "number"
   ) {
-    const ms = v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
-    return new Date(ms).toLocaleDateString("tr-TR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    return fmtDate(v);
   }
 
   if (typeof v === "object") {
@@ -73,7 +104,7 @@ const normalizeDay = (v) => {
 
   try {
     const s = String(v).trim();
-    if (!s || s === "true" || s === "false" || s === "0" || s === "1") return null;
+    if (!s || ["true", "false", "0", "1"].includes(s)) return null;
     return s;
   } catch {
     return null;
@@ -82,9 +113,9 @@ const normalizeDay = (v) => {
 
 const getDays = (obj) => {
   const cand =
+    obj?.selectedDays ??
     obj?.participationDay ??
     obj?.participationDays ??
-    obj?.selectedDays ??
     obj?.days ??
     obj?.day ??
     obj;
@@ -116,8 +147,9 @@ const getDays = (obj) => {
   return Array.from(new Set(cleaned));
 };
 
-const Partnerships = () => {
-  const [participants, setParticipants] = useState([]);
+/* ======================================================================= */
+const Staff = () => {
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [filters, setFilters] = useState({
@@ -134,23 +166,25 @@ const Partnerships = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const participantsPerPage = 15;
+  const perPage = 15;
 
   const adminInfo = useSelector((state) => state.user.adminInfo);
 
-  /* ---------- Fetch ---------- */
+  /* ---------- Veriyi Çek ---------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const q = query(collection(db, "partnership"), orderBy("createdAt", "desc"));
+        // ✅ yeni koleksiyon: "mihmandarlar"
+        const q = query(collection(db, "mihmandarlar"), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map((d) => ({
           id: d.id,
-          collection: "partnership",
+          collection: "mihmandarlar",
           ...d.data(),
         }));
 
-        setParticipants(data);
+        setRows(data);
+
         setTypes([...new Set(data.map((d) => d.organizationType).filter(Boolean))]);
         setCountries([...new Set(data.map((d) => d.organizationCountry).filter(Boolean))]);
         setParticipantTypes([
@@ -171,7 +205,7 @@ const Partnerships = () => {
     if (searchInput.trim() === "") setSearchQuery("");
   }, [searchInput]);
 
-  /* ---------- Handlers ---------- */
+  /* ---------- Handler'lar ---------- */
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
     setCurrentPage(1);
@@ -182,22 +216,20 @@ const Partnerships = () => {
     setCurrentPage(1);
   };
 
-  const handleDelete = async (id, photoUrl, passportPhotoUrl) => {
+  const handleDelete = async (id) => {
     try {
-      await deleteDoc(doc(db, "partnership", id));
-      if (photoUrl) await deleteObject(ref(storage, photoUrl));
-      if (passportPhotoUrl) await deleteObject(ref(storage, passportPhotoUrl));
-      setParticipants((prev) => prev.filter((p) => p.id !== id));
-      message.success("Başvuru başarıyla silindi.");
+      await deleteDoc(doc(db, "mihmandarlar", id));
+      setRows((prev) => prev.filter((p) => p.id !== id));
+      message.success("Kayıt silindi.");
     } catch (error) {
       console.error("Silme hatası:", error);
-      message.error("Başvuru silinirken bir hata oluştu.");
+      message.error("Silinirken bir hata oluştu.");
     }
   };
 
   const handleNoteUpdate = async (id, note) => {
     try {
-      const refDoc = doc(db, "partnership", id);
+      const refDoc = doc(db, "mihmandarlar", id);
       await updateDoc(refDoc, {
         adminNote: note,
         noteBy: adminInfo?.firstname || "Admin",
@@ -210,13 +242,19 @@ const Partnerships = () => {
     }
   };
 
-  /* ---------- Filter + Search ---------- */
-  const filtered = participants.filter((p) => {
+  /* ---------- Filtre + Arama ---------- */
+  const filtered = rows.filter((p) => {
     const fullName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
     const daysText = getDays(p).join(" ").toLowerCase();
-    const searchTarget = `${fullName} ${daysText} ${p.tcNo ?? ""} ${p.passportId ?? ""} ${
-      p.email ?? ""
-    } ${p.organization ?? ""}`.toLowerCase();
+    const hotelIn =
+      `${fmtDate(p.hotelCheckInAt)} ${fmtTime(p.hotelCheckInAt)}`.toLowerCase();
+    const hotelOut =
+      `${fmtDate(p.hotelCheckOutAt)} ${fmtTime(p.hotelCheckOutAt)}`.toLowerCase();
+
+    const searchTarget = `${fullName} ${daysText} ${p.tcNo ?? ""} ${p.email ?? ""} ${
+      p.organization ?? ""
+    } ${hotelIn} ${hotelOut}`.toLowerCase();
+
     const searchMatch = searchTarget.includes(searchQuery.toLowerCase());
 
     return (
@@ -228,12 +266,12 @@ const Partnerships = () => {
     );
   });
 
-  const indexOfLast = currentPage * participantsPerPage;
-  const indexOfFirst = indexOfLast - participantsPerPage;
+  const indexOfLast = currentPage * perPage;
+  const indexOfFirst = indexOfLast - perPage;
   const currentItems = filtered.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filtered.length / participantsPerPage);
+  const totalPages = Math.ceil(filtered.length / perPage);
 
-  /* ---------- Excel Export ---------- */
+  /* ---------- Excel Dışa Aktar ---------- */
   const exportToExcel = () => {
     if (filtered.length === 0) {
       message.warning("Dışa aktarılacak veri bulunamadı.");
@@ -247,7 +285,6 @@ const Partnerships = () => {
         Soyad: p.lastName ?? "",
         "E-posta": p.email ?? "",
         Telefon: p.phone ?? "",
-        Yaş: p.age ?? "",
         "Görev/Unvan": p.jobTitle ?? "",
         "Kurum/Kuruluş": p.organization ?? "",
         "Kurum Türü": p.organizationType ?? "",
@@ -255,32 +292,33 @@ const Partnerships = () => {
         "Katılım Amacı": p.description ?? "",
         "Katılımcı Tipi": p.participantType ?? "",
         "T.C. Kimlik No": p.tcNo ?? "",
-        "Doğum Tarihi": p.birthDate ? normalizeDay(p.birthDate) : "",
-        "Pasaport No": p.passportId ?? "",
-        "Pasaport Veriliş Tarihi": p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "",
-        "Pasaport Bitiş Tarihi": p.passportExpiry ? normalizeDay(p.passportExpiry) : "",
+        "Doğum Tarihi": fmtDate(p.birthDate),
         "Katılım Günleri": days.length > 0 ? days.join(", ") : "—",
-        "Gönderim Tarihi": p.createdAt?.toDate?.()
-          ? p.createdAt.toDate().toLocaleString("tr-TR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "—",
+        "Otel Giriş Tarihi": fmtDate(p.hotelCheckInAt),
+        "Otel Giriş Saati": fmtTime(p.hotelCheckInAt),
+        "Otel Çıkış Tarihi": fmtDate(p.hotelCheckOutAt),
+        "Otel Çıkış Saati": fmtTime(p.hotelCheckOutAt),
+        "Gönderim Tarihi":
+          p.createdAt?.toDate?.()
+            ? p.createdAt.toDate().toLocaleString("tr-TR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "—",
       };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Ortaklıklar");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "mihmandarlar");
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "Ortakliklar_FULL.xlsx");
+    saveAs(blob, "Mihmandarlar.xlsx");
   };
 
-  /* ---------- UI (Redesign) ---------- */
   return (
     <div className="rounded-2xl border border-emerald-100/60 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
       {/* Header */}
@@ -292,9 +330,9 @@ const Partnerships = () => {
               <FaHandshake className="text-white text-lg" />
             </div>
             <div>
-              <h2 className="text-xl md:text-2xl font-semibold">Ortaklık Başvuruları</h2>
+              <h2 className="text-xl md:text-2xl font-semibold">Mihmandar Başvuruları</h2>
               <p className="text-white/80 text-sm">
-                Gösterilen <b>{filtered.length}</b> / Toplam <b>{participants.length}</b>
+                Gösterilen <b>{filtered.length}</b> / Toplam <b>{rows.length}</b>
               </p>
             </div>
           </div>
@@ -315,14 +353,14 @@ const Partnerships = () => {
       {/* Toolbar */}
       <div className="px-6 md:px-8 py-5">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-          {/* Search */}
+          {/* Arama */}
           <div className="md:col-span-5">
             <div className="flex items-stretch gap-2">
               <div className="relative flex-1">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="İsim, gün, T.C. No veya Pasaport No ile ara…"
+                  placeholder="İsim, gün, T.C. No, e-posta veya otel giriş/çıkış ile ara…"
                   className="w-full pl-9 pr-3 h-10 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-300 transition"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -338,7 +376,7 @@ const Partnerships = () => {
             </div>
           </div>
 
-          {/* Filters */}
+          {/* Filtreler */}
           <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-2">
             <select
               name="participantType"
@@ -385,7 +423,7 @@ const Partnerships = () => {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Tablo */}
       <div className="px-3 md:px-6 pb-6">
         {loading ? (
           <TableLoading />
@@ -394,16 +432,14 @@ const Partnerships = () => {
         ) : (
           <>
             <div className="overflow-auto rounded-xl border border-slate-200">
-              <table className="min-w-[1900px] w-full text-sm">
+              <table className="min-w-[1400px] w-full text-sm">
                 <thead className="bg-gradient-to-r from-emerald-50 to-teal-50 sticky top-0 z-10">
                   <tr className="text-slate-700">
                     {[
-                      "Fotoğraf",
                       "Ad",
                       "Soyad",
                       "E-posta",
                       "Telefon",
-                      "Yaş",
                       "Görev/Unvan",
                       "Kurum/Kuruluş",
                       "Kurum Türü",
@@ -412,12 +448,13 @@ const Partnerships = () => {
                       "Katılımcı Tipi",
                       "T.C. Kimlik No",
                       "Doğum Tarihi",
-                      "Pasaport No",
-                      "Pasaport Veriliş Tarihi",
-                      "Pasaport Bitiş Tarihi",
-                      "Pasaport Fotoğrafı",
                       "Katılım Günleri",
+                      "Otel Giriş Tarihi",
+                      "Otel Giriş Saati",
+                      "Otel Çıkış Tarihi",
+                      "Otel Çıkış Saati",
                       "Gönderim Tarihi",
+                      "İşlemler",
                     ].map((h) => (
                       <th key={h} className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                         {h}
@@ -433,25 +470,12 @@ const Partnerships = () => {
                         key={p.id}
                         className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/60 transition"
                       >
-                        <td className="px-3 py-3">
-                          {p.photoUrl ? (
-                            <Image
-                              src={p.photoUrl}
-                              alt={`${p.firstName ?? ""} ${p.lastName ?? ""}`}
-                              width={40}
-                              height={40}
-                              className="h-10 w-10 object-cover rounded-full ring-2 ring-white shadow"
-                            />
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
+                        <td className="px-3 py-3 font-medium text-slate-800">
+                          {p.firstName ?? "—"}
                         </td>
-
-                        <td className="px-3 py-3 font-medium text-slate-800">{p.firstName ?? "—"}</td>
                         <td className="px-3 py-3">{p.lastName ?? "—"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">{p.email ?? "—"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">{p.phone ?? "—"}</td>
-                        <td className="px-3 py-3">{p.age ?? "—"}</td>
                         <td className="px-3 py-3">{p.jobTitle ?? "—"}</td>
                         <td className="px-3 py-3">{p.organization ?? "—"}</td>
                         <td className="px-3 py-3">{p.organizationType ?? "—"}</td>
@@ -461,27 +485,7 @@ const Partnerships = () => {
 
                         <td className="px-3 py-3">{p.participantType ?? "—"}</td>
                         <td className="px-3 py-3">{p.tcNo ?? "—"}</td>
-                        <td className="px-3 py-3">{p.birthDate ? normalizeDay(p.birthDate) : "—"}</td>
-                        <td className="px-3 py-3">{p.passportId ?? "—"}</td>
-                        <td className="px-3 py-3">
-                          {p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "—"}
-                        </td>
-                        <td className="px-3 py-3">
-                          {p.passportExpiry ? normalizeDay(p.passportExpiry) : "—"}
-                        </td>
-
-                        <td className="px-3 py-3">
-                          {p.passportPhotoUrl ? (
-                            <Image
-                              src={p.passportPhotoUrl}
-                              width={44}
-                              height={44}
-                              className="h-11 w-11 object-cover rounded-lg ring-1 ring-slate-200"
-                            />
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
+                        <td className="px-3 py-3">{fmtDate(p.birthDate)}</td>
 
                         <td className="px-3 py-3">
                           {days.length > 0 ? (
@@ -500,6 +504,11 @@ const Partnerships = () => {
                           )}
                         </td>
 
+                        <td className="px-3 py-3">{fmtDate(p.hotelCheckInAt)}</td>
+                        <td className="px-3 py-3">{fmtTime(p.hotelCheckInAt)}</td>
+                        <td className="px-3 py-3">{fmtDate(p.hotelCheckOutAt)}</td>
+                        <td className="px-3 py-3">{fmtTime(p.hotelCheckOutAt)}</td>
+
                         <td className="px-3 py-3 font-medium text-slate-700">
                           {p.createdAt?.toDate?.()
                             ? p.createdAt.toDate().toLocaleString("tr-TR", {
@@ -511,6 +520,15 @@ const Partnerships = () => {
                               })
                             : "—"}
                         </td>
+
+                        <td className="px-3 py-3">
+                          <button
+                            onClick={() => handleDelete(p.id)}
+                            className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700"
+                          >
+                            Sil
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -518,7 +536,7 @@ const Partnerships = () => {
               </table>
             </div>
 
-            {/* Pagination */}
+            {/* Sayfalama */}
             <div className="flex justify-center mt-5">
               <nav className="inline-flex rounded-xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
                 {[...Array(totalPages)].map((_, i) => {
@@ -546,4 +564,4 @@ const Partnerships = () => {
   );
 };
 
-export default Partnerships;
+export default Staff;

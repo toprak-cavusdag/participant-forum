@@ -9,15 +9,23 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db, storage } from "../../config/firebase";
-import { FaUser, FaSearch, FaFileExcel } from "react-icons/fa";
+import { FaUser, FaSearch, FaFileExcel, FaTrash } from "react-icons/fa";
 import { deleteObject, ref } from "firebase/storage";
-import { Image, message, Button, Tooltip } from "antd";
+import { Image, message, Button } from "antd";
 import PopConfirmDelete from "../../components/common/PopConfirmDelete";
-import { useSelector } from "react-redux";
 import TableLoading from "../../components/admin/table/TableLoading";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import DescriptionCell from "../../components/common/DescriptionCell";
+
+const FLAG_OPTIONS = [
+  { value: "none",  label: "Seçilmedi" },
+  { value: "green", label: "Önemsiz" },
+  { value: "blue",  label: "Önemli" },
+];
+
+const flagDotClass = (c) =>
+  c === "green" ? "bg-emerald-500" : c === "blue" ? "bg-sky-500" : "bg-slate-400";
 
 const Participants = () => {
   const [participants, setParticipants] = useState([]);
@@ -33,22 +41,23 @@ const Participants = () => {
   const [countries, setCountries] = useState([]);
   const [participantTypes, setParticipantTypes] = useState([]);
 
+  const [flagFilter, setFlagFilter] = useState("Tümü"); // "Tümü" | "none" | "green" | "blue"
+
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const participantsPerPage = 15;
 
-  // Yeni: görünüm ve ayırıcı
   const [viewMode, setViewMode] = useState("table"); // 'table' | 'inline'
   const [delimiterKey, setDelimiterKey] = useState("tab"); // 'tab' | 'pipe'
 
-  const adminInfo = useSelector((state) => state.user.adminInfo);
+  // Excel kapsam seçimi
+  const [exportScope, setExportScope] = useState("filtered"); // 'filtered' | 'page' | 'all'
 
   /* ---------------- Helpers: Day Normalizers ---------------- */
   const normalizeDay = (v) => {
     if (v == null) return null;
-
     if (typeof v === "string") return v;
     if (typeof v === "number") return String(v);
 
@@ -80,7 +89,6 @@ const Participants = () => {
       if (v.label) return String(v.label);
       if (v.name) return String(v.name);
       if (v.day) return String(v.day);
-
       const vals = Object.values(v);
       if (vals.length === 1) return normalizeDay(vals[0]);
     }
@@ -121,6 +129,7 @@ const Participants = () => {
     return [];
   };
 
+  /* ---------------- Data Fetch ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -128,24 +137,24 @@ const Participants = () => {
         let allData = [];
 
         for (const coll of collections) {
-          const q = query(collection(db, coll), orderBy("createdAt", "desc"));
-          const snapshot = await getDocs(q);
-          const data = snapshot.docs.map((docx) => ({
-            id: docx.id,
-            collection: coll,
-            ...docx.data(),
-          }));
+          const qy = query(collection(db, coll), orderBy("createdAt", "desc"));
+          const snapshot = await getDocs(qy);
+          const data = snapshot.docs.map((docx) => {
+            const d = docx.data();
+            return {
+              id: docx.id,
+              collection: coll,
+              ...d,
+              flagColor: d.flagColor ?? "none",
+            };
+          });
           allData = [...allData, ...data];
         }
 
         setParticipants(allData);
         setTypes([...new Set(allData.map((d) => d.organizationType).filter(Boolean))]);
-        setCountries([
-          ...new Set(allData.map((d) => d.organizationCountry).filter(Boolean)),
-        ]);
-        setParticipantTypes([
-          ...new Set(allData.map((d) => d.participantType).filter(Boolean)),
-        ]);
+        setCountries([...new Set(allData.map((d) => d.organizationCountry).filter(Boolean))]);
+        setParticipantTypes([...new Set(allData.map((d) => d.participantType).filter(Boolean))]);
       } catch (err) {
         console.error("Veri çekme hatası", err);
         message.error("Bir sorun oluştu. Lütfen tekrar deneyin.");
@@ -163,6 +172,13 @@ const Participants = () => {
     }
   }, [searchInput]);
 
+  /* ---------------- Local Patch Helper ---------------- */
+  const patchRow = (id, collectionName, patch) => {
+    setParticipants((prev) =>
+      prev.map((p) => (p.id === id && p.collection === collectionName ? { ...p, ...patch } : p))
+    );
+  };
+
   /* ---------------- Handlers ---------------- */
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -174,17 +190,46 @@ const Participants = () => {
     setCurrentPage(1);
   };
 
+  const handleFlagChange = async (id, collectionName, next) => {
+    const prev =
+      participants.find((p) => p.id === id && p.collection === collectionName)?.flagColor ?? "none";
+    patchRow(id, collectionName, { flagColor: next });
+    try {
+      await updateDoc(doc(db, collectionName, id), { flagColor: next });
+      message.success("İşaret güncellendi.");
+    } catch (e) {
+      patchRow(id, collectionName, { flagColor: prev });
+      message.error("İşaret güncellenemedi.");
+    }
+  };
+
+  // Silme: Firestore + Storage
   const handleDelete = async (id, collectionName, photoUrl, passportPhotoUrl) => {
+    const toRef = (u) => {
+      if (!u) return null;
+      try {
+        return ref(storage, u);
+      } catch {
+        return null;
+      }
+    };
+
     try {
       await deleteDoc(doc(db, collectionName, id));
-      if (photoUrl) {
-        const fileRef = ref(storage, photoUrl);
-        await deleteObject(fileRef);
+
+      const photoRef = toRef(photoUrl);
+      const passRef = toRef(passportPhotoUrl);
+      if (photoRef) {
+        try {
+          await deleteObject(photoRef);
+        } catch {}
       }
-      if (passportPhotoUrl) {
-        const passportFileRef = ref(storage, passportPhotoUrl);
-        await deleteObject(passportFileRef);
+      if (passRef) {
+        try {
+          await deleteObject(passRef);
+        } catch {}
       }
+
       setParticipants((prev) =>
         prev.filter((p) => !(p.id === id && p.collection === collectionName))
       );
@@ -195,21 +240,6 @@ const Participants = () => {
     }
   };
 
-  const handleNoteUpdate = async (id, collectionName, note) => {
-    try {
-      const refDoc = doc(db, collectionName, id);
-      await updateDoc(refDoc, {
-        adminNote: note,
-        noteBy: adminInfo?.firstname || "Admin",
-        noteDate: new Date(),
-      });
-      message.success("Not güncellendi.");
-    } catch (error) {
-      console.error("Not güncelleme hatası:", error);
-      message.error("Not güncellenirken hata oluştu.");
-    }
-  };
-
   /* ---------------- Filter + Search ---------------- */
   const filtered = participants.filter((p) => {
     const fullName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
@@ -217,13 +247,17 @@ const Participants = () => {
     const searchTarget = `${fullName} ${daysText} ${p.tcNo ?? ""} ${p.passportId ?? ""}`.trim();
     const searchMatch = searchTarget.includes((searchQuery || "").toLowerCase());
 
-    return (
-      searchMatch &&
-      (filters.organizationType === "Tümü" || p.organizationType === filters.organizationType) &&
-      (filters.organizationCountry === "Tümü" ||
-        p.organizationCountry === filters.organizationCountry) &&
-      (filters.participantType === "Tümü" || p.participantType === filters.participantType)
-    );
+    const passType =
+      filters.organizationType === "Tümü" || p.organizationType === filters.organizationType;
+    const passCountry =
+      filters.organizationCountry === "Tümü" || p.organizationCountry === filters.organizationCountry;
+    const passPType =
+      filters.participantType === "Tümü" || p.participantType === filters.participantType;
+
+    const flagVal = p.flagColor ?? "none";
+    const passFlag = flagFilter === "Tümü" ? true : flagVal === flagFilter;
+
+    return searchMatch && passType && passCountry && passPType && passFlag;
   });
 
   const indexOfLast = currentPage * participantsPerPage;
@@ -231,58 +265,81 @@ const Participants = () => {
   const currentItems = filtered.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filtered.length / participantsPerPage);
 
-  /* ---------------- Export ---------------- */
-  const exportToExcel = () => {
-    if (filtered.length === 0) {
+  /* ---------------- Export Helpers ---------------- */
+
+  const buildExportRow = (p) => {
+    const days = getDays(p);
+    const created =
+      p.createdAt?.toDate
+        ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "—";
+
+    const flagText =
+      p.flagColor === "blue"
+        ? "Önemli"
+        : p.flagColor === "green"
+        ? "Önemsiz"
+        : "Seçilmedi";
+
+    return {
+      "Bayrak Rengi": flagText,
+      Fotoğraf: p.photoUrl ?? "",
+      Ad: p.firstName ?? "",
+      Soyad: p.lastName ?? "",
+      "E-posta": p.email ?? "",
+      Telefon: p.phone ?? "",
+      "Görev/Unvan": p.jobTitle ?? "",
+      "Kurum/Kuruluş": p.organization ?? "",
+      "Kurum Türü": p.organizationType ?? "",
+      Ülke: p.organizationCountry ?? "",
+      "Katılım Amacı": (p.description ?? "").toString().replace(/\s+/g, " ").trim(),
+      "Katılımcı Tipi": p.participantType ?? "",
+      "T.C. Kimlik No": p.tcNo ?? "",
+      "Doğum Tarihi": p.birthDate ? normalizeDay(p.birthDate) : "",
+      "Pasaport No": p.passportId ?? "",
+      "Pasaport Veriliş Tarihi": p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "",
+      "Pasaport Bitiş Tarihi": p.passportExpiry ? normalizeDay(p.passportExpiry) : "",
+      "Pasaport Fotoğrafı": p.passportPhotoUrl ?? "",
+      "Katılım Günleri": days.length > 0 ? days.join(", ") : "—",
+      "Gönderim Tarihi": created,
+    };
+  };
+
+  const exportExcel = (list, fileName) => {
+    if (!list || list.length === 0) {
       message.warning("Dışa aktarılacak veri bulunamadı.");
       return;
     }
-
-    const exportData = filtered.map((p) => {
-      const days = getDays(p);
-      return {
-        Fotoğraf: p.photoUrl ?? "",
-        Ad: p.firstName ?? "",
-        Soyad: p.lastName ?? "",
-        "E-posta": p.email ?? "",
-        Telefon: p.phone ?? "",
-        "Görev/Unvan": p.jobTitle ?? "",
-        "Kurum/Kuruluş": p.organization ?? "",
-        "Kurum Türü": p.organizationType ?? "",
-        Ülke: p.organizationCountry ?? "",
-        "Katılım Amacı": p.description ?? "",
-        "Katılımcı Tipi": p.participantType ?? "",
-        "T.C. Kimlik No": p.tcNo ?? "",
-        "Doğum Tarihi": p.birthDate ? normalizeDay(p.birthDate) : "",
-        "Pasaport No": p.passportId ?? "",
-        "Pasaport Veriliş Tarihi": p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "",
-        "Pasaport Bitiş Tarihi": p.passportExpiry ? normalizeDay(p.passportExpiry) : "",
-        "Pasaport Fotoğrafı": p.passportPhotoUrl ?? "",
-        "Katılım Günleri": days.length > 0 ? days.join(", ") : "—",
-        "Gönderim Tarihi": p.createdAt
-          ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "—",
-      };
-    });
-
+    const exportData = list.map(buildExportRow);
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Katılımcılar");
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "Katilimcilar_FULL.xlsx");
+    saveAs(blob, fileName);
+  };
+
+  const handleExport = () => {
+    if (exportScope === "page") {
+      exportExcel(currentItems, "Katilimcilar_SAYFA.xlsx");
+    } else if (exportScope === "all") {
+      exportExcel(participants, "Katilimcilar_TUMU.xlsx");
+    } else {
+      exportExcel(filtered, "Katilimcilar_FILTRELI.xlsx");
+    }
   };
 
   /* ---------------- Inline formatter & copy helpers ---------------- */
   const delimiter = delimiterKey === "tab" ? "\t" : " | ";
 
   const inlineHeaders = [
+    "Bayrak Rengi",
     "Fotoğraf",
     "Ad",
     "Soyad",
@@ -306,7 +363,7 @@ const Participants = () => {
 
   const formatParticipantInline = (p) => {
     const days = getDays(p);
-    const created = p.createdAt
+    const created = p.createdAt?.toDate
       ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
           day: "numeric",
           month: "long",
@@ -316,7 +373,15 @@ const Participants = () => {
         })
       : "—";
 
+    const flagText =
+      p.flagColor === "blue"
+        ? "Önemli"
+        : p.flagColor === "green"
+        ? "Önemsiz"
+        : "Seçilmedi";
+
     const row = [
+      flagText,
       p.photoUrl ?? "—",
       p.firstName ?? "—",
       p.lastName ?? "—",
@@ -409,16 +474,29 @@ const Participants = () => {
               </select>
             </div>
 
-            <Tooltip title="Excel’e aktar">
-              <Button
-                type="primary"
-                icon={<FaFileExcel />}
-                className="!bg-white !text-emerald-700 !border-none !px-4 !h-10 hover:!bg-emerald-50"
-                onClick={exportToExcel}
+            {/* Excel kapsam seçici + buton */}
+            <div className="flex items-center gap-2 bg-white/15 rounded-xl px-2 py-1 ring-1 ring-white/30">
+              <span className="text-white/90 text-sm">Kapsam:</span>
+              <select
+                value={exportScope}
+                onChange={(e) => setExportScope(e.target.value)}
+                className="bg-transparent text-white text-sm focus:outline-none"
+                title="Excel çıktısının kapsamını seçin"
               >
-                Excel’e Aktar
-              </Button>
-            </Tooltip>
+                <option value="filtered">Filtrelenen</option>
+                <option value="page">Bu Sayfa</option>
+                <option value="all">Tümü</option>
+              </select>
+            </div>
+
+            <Button
+              type="primary"
+              icon={<FaFileExcel />}
+              className="!bg-white !text-emerald-700 !border-none !px-4 !h-10 hover:!bg-emerald-50"
+              onClick={handleExport}
+            >
+              Excel’e Aktar
+            </Button>
           </div>
         </div>
       </div>
@@ -450,7 +528,7 @@ const Participants = () => {
           </div>
 
           {/* Filters */}
-          <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-4 gap-2">
             <select
               name="organizationType"
               value={filters.organizationType}
@@ -492,6 +570,18 @@ const Participants = () => {
                 </option>
               ))}
             </select>
+
+            {/* Bayrak filtresi */}
+            <select
+              value={flagFilter}
+              onChange={(e) => setFlagFilter(e.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-300"
+            >
+              <option value="Tümü">Tüm İşaretler</option>
+              <option value="none">Seçilmedi</option>
+              <option value="green">Önemsiz</option>
+              <option value="blue">Önemli</option>
+            </select>
           </div>
         </div>
 
@@ -518,13 +608,13 @@ const Participants = () => {
             Kriterlere uygun katılımcı bulunamadı.
           </div>
         ) : viewMode === "table" ? (
-          /* Tablo görünümü */
           <>
             <div className="overflow-auto rounded-xl border border-slate-200">
-              <table className="min-w-[1900px] w-full text-sm">
+              <table className="min-w-[2150px] w-full text-sm">
                 <thead className="bg-gradient-to-r from-emerald-50 to-teal-50 sticky top-0 z-10">
                   <tr className="text-slate-700">
                     {[
+                      "Bayrak",
                       "Fotoğraf",
                       "Ad",
                       "Soyad",
@@ -553,13 +643,44 @@ const Participants = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {currentItems.map((p) => {
+                  {filtered.slice(indexOfFirst, indexOfLast).map((p) => {
                     const days = getDays(p);
+
                     return (
                       <tr
                         key={`${p.collection}-${p.id}`}
                         className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/60 transition"
                       >
+                        {/* 1) Bayrak sütunu */}
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-block h-2.5 w-2.5 rounded-full ${flagDotClass(
+                                p.flagColor ?? "none"
+                              )}`}
+                              title={
+                                p.flagColor === "blue"
+                                  ? "Önemli"
+                                  : p.flagColor === "green"
+                                  ? "Önemsiz"
+                                  : "Seçilmedi"
+                              }
+                            />
+                            <select
+                              value={p.flagColor ?? "none"}
+                              onChange={(e) => handleFlagChange(p.id, p.collection, e.target.value)}
+                              className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs"
+                            >
+                              {FLAG_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+
+                        {/* Fotoğraf */}
                         <td className="px-3 py-3">
                           {p.photoUrl ? (
                             <Image
@@ -572,6 +693,7 @@ const Participants = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
+
                         <td className="px-3 py-3 font-medium text-slate-800">{p.firstName ?? "—"}</td>
                         <td className="px-3 py-3">{p.lastName ?? "—"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">{p.email ?? "—"}</td>
@@ -580,7 +702,9 @@ const Participants = () => {
                         <td className="px-3 py-3">{p.organization ?? "—"}</td>
                         <td className="px-3 py-3">{p.organizationType ?? "—"}</td>
                         <td className="px-3 py-3">{p.organizationCountry ?? "—"}</td>
+
                         <DescriptionCell text={p.description} />
+
                         <td className="px-3 py-3">{p.participantType ?? "—"}</td>
                         <td className="px-3 py-3">{p.tcNo ?? "—"}</td>
                         <td className="px-3 py-3">{p.birthDate ? normalizeDay(p.birthDate) : "—"}</td>
@@ -620,7 +744,7 @@ const Participants = () => {
                           )}
                         </td>
                         <td className="px-3 py-3 font-medium text-slate-700">
-                          {p.createdAt
+                          {p.createdAt?.toDate
                             ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
                                 day: "numeric",
                                 month: "long",
@@ -631,19 +755,16 @@ const Participants = () => {
                             : "—"}
                         </td>
                         <td className="px-3 py-3">
-                          <div className="flex flex-col gap-2">
-                            <PopConfirmDelete
-                              onConfirm={() =>
-                                handleDelete(p.id, p.collection, p.photoUrl, p.passportPhotoUrl)
-                              }
-                            />
-                            <textarea
-                              className="w-48 min-h-20 border border-slate-200 text-xs p-2 rounded-lg focus:outline-none focus:ring-4 focus:ring-emerald-100"
-                              placeholder="Not yaz..."
-                              defaultValue={p.adminNote || ""}
-                              onBlur={(e) => handleNoteUpdate(p.id, p.collection, e.target.value)}
-                            />
-                          </div>
+                          <PopConfirmDelete
+                            title="Bu başvuruyu silmek istediğinize emin misiniz?"
+                            onConfirm={() =>
+                              handleDelete(p.id, p.collection, p.photoUrl, p.passportPhotoUrl)
+                            }
+                          >
+                            <Button danger size="small" className="!rounded-lg" icon={<FaTrash />}>
+                              Sil
+                            </Button>
+                          </PopConfirmDelete>
                         </td>
                       </tr>
                     );
@@ -675,7 +796,7 @@ const Participants = () => {
             </div>
           </>
         ) : (
-          /* Satır Satır (yan yana) görünüm */
+          /* Satır Satır görünüm */
           <>
             <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div className="bg-slate-50 px-4 py-2 text-xs text-slate-600">

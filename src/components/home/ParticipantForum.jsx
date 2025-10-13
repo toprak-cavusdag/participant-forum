@@ -176,7 +176,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Kod alanından çıkarken geçerlilik kontrolü
+
   const handleCodeBlur = () => {
     if (!formData.countryCode) return;
     if (!validateCountryCode(formData.countryCode, codeList)) {
@@ -366,7 +366,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
         userData.passportPhotoUrl = passportPhotoUrl;
       }
 
-      await addDoc(collection(db, "participant"), userData);
+      await addDoc(collection(db, "web_registered"), userData);
 
       await sendConfirmationEmail({
         name: `${formData.firstName} ${formData.lastName}`,

@@ -1,7 +1,7 @@
+import { MdSchool } from "react-icons/md";
 import { Outlet, NavLink } from "react-router-dom";
-import { FaStar, FaUsers } from "react-icons/fa";
+import { FaStar, FaUsers, FaHandshake, FaLock, FaUserTie } from "react-icons/fa";
 import LogoutButton from "../../components/admin/LogoutButton";
-import { FaHandshake } from "react-icons/fa";
 import NavbarWelcomer from "../../components/admin/NavbarWelcomer";
 
 const DashboardLayout = () => {
@@ -22,6 +22,22 @@ const DashboardLayout = () => {
           <ul className="space-y-2">
             <li>
               <NavLink
+                to="/dashboard/web-registered"
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 text-base font-medium rounded-lg px-3 py-2 transition-colors ${
+                    isActive
+                      ? "bg-emerald-50 text-emerald-500"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <FaUsers className="text-xl" />
+                <span>Web Registered</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink
                 to="/dashboard/participants"
                 className={({ isActive }) =>
                   `flex items-center space-x-3 text-base font-medium rounded-lg px-3 py-2 transition-colors ${
@@ -35,6 +51,7 @@ const DashboardLayout = () => {
                 <span>Participants</span>
               </NavLink>
             </li>
+
             <li>
               <NavLink
                 to="/dashboard/partnership"
@@ -50,7 +67,41 @@ const DashboardLayout = () => {
                 <span>Partnerships</span>
               </NavLink>
             </li>
-                        <li>
+
+            <li>
+              <NavLink
+                to="/dashboard/private-sessions"
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 text-base font-medium rounded-lg px-3 py-2 transition-colors ${
+                    isActive
+                      ? "bg-emerald-50 text-emerald-500"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <FaLock className="text-xl" />
+                <span>Private Sessions</span>
+              </NavLink>
+            </li>
+
+            {/* ✅ Mihmandarlar sekmesi eklendi */}
+            <li>
+              <NavLink
+                to="/dashboard/mihmandarlar"
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 text-base font-medium rounded-lg px-3 py-2 transition-colors ${
+                    isActive
+                      ? "bg-emerald-50 text-emerald-500"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <FaUserTie className="text-xl" />
+                <span>Mihmandarlar</span>
+              </NavLink>
+            </li>
+
+            <li>
               <NavLink
                 to="/dashboard/special-partnership"
                 className={({ isActive }) =>
@@ -65,7 +116,24 @@ const DashboardLayout = () => {
                 <span>Special Invitee</span>
               </NavLink>
             </li>
+
+            <li>
+              <NavLink
+                to="/dashboard/academics"
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 text-base font-medium rounded-lg px-3 py-2 transition-colors ${
+                    isActive
+                      ? "bg-emerald-50 text-emerald-500"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <MdSchool className="text-xl" />
+                <span>Academics</span>
+              </NavLink>
+            </li>
           </ul>
+
           <LogoutButton />
         </nav>
 

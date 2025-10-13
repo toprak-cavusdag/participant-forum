@@ -8,11 +8,11 @@ import {
 } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { Image, message, Button } from "antd";
-import { FaSearch, FaFileExcel, FaUsers, FaStar } from "react-icons/fa";
+import { FaSearch, FaFileExcel, FaStar } from "react-icons/fa";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-/* ---------- Sabit Firma Listesi ---------- */
+/* ---------- Sabit Firma Listesi (görüntüleme & filtre başlıkları) ---------- */
 const SPECIAL_FIRMS = [
   "Turkcell",
   "Ziraat Bankası",
@@ -20,9 +20,44 @@ const SPECIAL_FIRMS = [
   "Halkbank",
   "Türk Telekom",
   "Türkiye Sigorta",
+  "Türk Hava Yolları",
+  "Revego",
 ];
 
-/* ---------- Yardımcılar (senin koddakiyle uyumlu) ---------- */
+/* ---------- Alias'lar: Firestore'da farklı yazımlar için kapsama ---------- */
+const ALIASES = {
+  "Turkcell": ["Turkcell"],
+  "Ziraat Bankası": ["Ziraat Bankası", "Ziraat", "T.C. Ziraat Bankası", "TC Ziraat Bankası"],
+  "VakıfBank": ["VakıfBank", "Vakıf Bank", "Vakifbank", "Vakif Bank"],
+  "Halkbank": ["Halkbank", "T. Halk Bankası", "Türkiye Halk Bankası", "Halk Bankası"],
+  "Türk Telekom": ["Türk Telekom", "Turk Telekom", "TT"],
+  "Türkiye Sigorta": ["Türkiye Sigorta"],
+  "Türk Hava Yolları": ["Türk Hava Yolları", "THY", "Turkish Airlines"],
+  // Yeni: Revego alias'ları
+  "Revego": ["Revego", "REVEGO", "Revego Teknoloji", "Revego Technology", "Revego Tech"],
+};
+
+/* ---------- Alias listesini tek diziye indir, tekrarları kaldır ---------- */
+const FLATTENED = Array.from(new Set(Object.values(ALIASES).flat()));
+
+/* ---------- Yardımcılar ---------- */
+const chunk = (arr, size) => {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
+const resolveFirm = (org) => {
+  if (!org) return null;
+  const s = String(org).trim().toLowerCase();
+  for (const canonical of Object.keys(ALIASES)) {
+    for (const alias of ALIASES[canonical]) {
+      if (s === String(alias).trim().toLowerCase()) return canonical;
+    }
+  }
+  return null;
+};
+
 const normalizeDay = (v) => {
   if (v == null) return null;
   if (typeof v === "boolean") return null;
@@ -100,7 +135,7 @@ const getDays = (obj) => {
 
 /* ---------- Component ---------- */
 export default function SpecialPartners() {
-  const [rows, setRows] = useState([]);            // tüm özel firmalar
+  const [rows, setRows] = useState([]);            // tüm özel firmalar (alias çözülmüş)
   const [loading, setLoading] = useState(true);
   const [firmFilter, setFirmFilter] = useState("Tümü");
   const [searchInput, setSearchInput] = useState("");
@@ -110,13 +145,30 @@ export default function SpecialPartners() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        // where-in ile tek seferde özel firmaları çek
-        const q = query(
-          collection(db, "partnership"),
-          where("organization", "in", SPECIAL_FIRMS)
-        );
-        const snap = await getDocs(q);
-        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        // Firestore 'in' limiti 10 olduğu için alias listemizi 10'luk parçalara bölüyoruz
+        const col = collection(db, "partnership");
+        const parts = chunk(FLATTENED, 10);
+        const allDocs = [];
+
+        for (const values of parts) {
+          const q = query(col, where("organization", "in", values));
+          const snap = await getDocs(q);
+          allDocs.push(...snap.docs);
+        }
+
+        // Aynı belge iki parçada gelebilir, id bazında uniq al
+        const uniqMap = new Map();
+        for (const d of allDocs) uniqMap.set(d.id, d);
+
+        const data = Array.from(uniqMap.values()).map((d) => {
+          const raw = d.data();
+          const canonical = resolveFirm(raw.organization);
+          return {
+            id: d.id,
+            ...raw,
+            _canonicalOrg: canonical || raw.organization || null,
+          };
+        });
 
         // createdAt yoksa en sona düşecek şekilde client-side sort
         const sorted = data.sort((a, b) => {
@@ -143,7 +195,8 @@ export default function SpecialPartners() {
   const countsByFirm = useMemo(() => {
     const map = Object.fromEntries(SPECIAL_FIRMS.map((f) => [f, 0]));
     rows.forEach((r) => {
-      if (SPECIAL_FIRMS.includes(r.organization)) map[r.organization] += 1;
+      const firm = r._canonicalOrg;
+      if (SPECIAL_FIRMS.includes(firm)) map[firm] += 1;
     });
     return map;
   }, [rows]);
@@ -151,13 +204,14 @@ export default function SpecialPartners() {
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return rows.filter((p) => {
-      const matchFirm = firmFilter === "Tümü" ? true : p.organization === firmFilter;
+      const orgName = p._canonicalOrg || p.organization;
+      const matchFirm = firmFilter === "Tümü" ? true : orgName === firmFilter;
       if (!matchFirm) return false;
 
       if (!q) return true;
       const name = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
       const daysText = getDays(p).join(" ").toLowerCase();
-      const target = `${name} ${daysText} ${p.tcNo ?? ""} ${p.passportId ?? ""} ${p.email ?? ""} ${p.organization ?? ""}`.toLowerCase();
+      const target = `${name} ${daysText} ${p.tcNo ?? ""} ${p.passportId ?? ""} ${p.email ?? ""} ${orgName ?? ""}`.toLowerCase();
       return target.includes(q);
     });
   }, [rows, firmFilter, searchQuery]);
@@ -169,8 +223,9 @@ export default function SpecialPartners() {
     }
     const exportData = filtered.map((p) => {
       const days = getDays(p);
+      const orgName = p._canonicalOrg || p.organization;
       return {
-        Firma: p.organization ?? "",
+        Firma: orgName ?? "",
         Ad: p.firstName ?? "",
         Soyad: p.lastName ?? "",
         "E-posta": p.email ?? "",
@@ -321,9 +376,12 @@ export default function SpecialPartners() {
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((p) => {
                   const days = getDays(p);
+                  const orgName = p._canonicalOrg || p.organization;
                   return (
                     <tr key={p.id} className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/60 transition">
-                      <td className="px-3 py-3 font-medium text-emerald-700">{p.organization ?? "—"}</td>
+                      <td className="px-3 py-3 font-medium text-emerald-700">
+                        {orgName ?? "—"}
+                      </td>
                       <td className="px-3 py-3">
                         {p.photoUrl ? (
                           <Image

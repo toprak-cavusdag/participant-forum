@@ -11,7 +11,6 @@ import ParticipantForum from "../../components/home/ParticipantForum";
 import PartnershipForum from "../../components/home/PartnershipForum";
 import Footer from "../../components/common/Footer";
 
-// const IS_CLOSED = import.meta.env.VITE_FORUM_CLOSED === "true";
 const IS_CLOSED = false;
 
 // Animasyonlar
@@ -24,12 +23,40 @@ const springUp = {
   show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 120, damping: 16 } },
 };
 
+const RegistrationWarning = () => {
+  const { t } = useTranslation();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-md mx-auto mb-6 mt-8 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 p-4 shadow-sm"
+    >
+      <div className="flex items-start gap-3">
+        <FiAlertTriangle className="text-2xl text-amber-600 mt-1 shrink-0" />
+        <div>
+          <p className="font-semibold text-base">{t("warn.title")}</p>
+          <p className=" mt-1 leading-relaxed">{t("warn.body")}</p>
+          <p className=" mt-3 font-bold leading-relaxed">{t("warn.contact")}</p>
+          <a
+            href={`mailto:${t("warn.email")}`}
+            className="text-amber-700 underline font-medium"
+          >
+            {t("warn.email")}
+          </a>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 function ClosedTicket() {
   const { t } = useTranslation();
 
   return (
     <motion.section
-      className="relative mx-auto max-w-3xl px-4 mt-4 mb-16" // ⬅️ -mt-16 yerine mt-4
+      className="relative mx-auto max-w-3xl px-4 mt-4 mb-16"
       initial="hidden"
       animate="show"
       variants={fadeIn}
@@ -116,22 +143,25 @@ const Home = () => {
                 className="mt-4"
               >
                 {!isSubmitted && (
-                  <div className="max-w-md mx-auto lg:px-0 px-4 mb-16">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("home.sublabel")} <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formType}
-                      onChange={handleSelectChange}
-                      className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
-                    >
-                      <option value="" disabled hidden>
-                        {t("home.placeholder")}
-                      </option>
-                      <option value="participant">{t("home.participant")}</option>
-                      <option value="partnership">{t("home.partnership")}</option>
-                    </select>
-                  </div>
+                  <>
+                    <RegistrationWarning /> {/* 🟨 UYARI BURADA */}
+                    <div className="max-w-md mx-auto lg:px-0 px-4 mb-16">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t("home.sublabel")} <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formType}
+                        onChange={handleSelectChange}
+                        className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                      >
+                        <option value="" disabled hidden>
+                          {t("home.placeholder")}
+                        </option>
+                        <option value="participant">{t("home.participant")}</option>
+                        <option value="partnership">{t("home.partnership")}</option>
+                      </select>
+                    </div>
+                  </>
                 )}
 
                 <AnimatePresence mode="popLayout">

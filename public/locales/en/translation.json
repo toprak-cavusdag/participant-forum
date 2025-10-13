@@ -312,5 +312,12 @@
     "announcements": "See announcements",
     "contact": "Contact us",
     "note": "If registrations reopen, the form will appear here automatically."
-  }
+  },
+  "warn": {
+  "title": "⚠️ Important Notice",
+  "body": "This form is intended only for participant, institutions, organizations, civil society, and private sector representatives. Municipalities, official invitees, ministers, and delegates should not fill out this form.",
+  "contact": "For registration or invitation inquiries, please contact the following email address:",
+  "email": "secretariat@globalzerowasteforum.org"
+}
+
 }

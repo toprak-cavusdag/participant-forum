@@ -312,5 +312,11 @@
     "announcements": "Duyuruları gör",
     "contact": "İletişime geç",
     "note": "Kayıtlar yeniden açılırsa form bu alanda otomatik görünecek."
-  }
+  },
+"warn": {
+  "title": "⚠️ Önemli Uyarı",
+  "body": "Bu form yalnızca katılımcı, kurum, kuruluş, sivil toplum ve özel sektör temsilcileri içindir. Belediyeler, resmi davetliler, bakanlar ve delegeler bu formu doldurmamalıdır.",
+  "contact": "Lütfen kayıt veya davet işlemleri için aşağıdaki e-posta adresine ulaşınız:",
+  "email": "secretariat@globalzerowasteforum.org"
+}
 }

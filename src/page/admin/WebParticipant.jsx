@@ -9,114 +9,17 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db, storage } from "../../config/firebase";
-import { FaSearch, FaHandshake, FaFileExcel } from "react-icons/fa";
+import { FaUser, FaSearch, FaFileExcel } from "react-icons/fa";
 import { deleteObject, ref } from "firebase/storage";
-import { Image, message, Button } from "antd";
+import { Image, message, Button, Tooltip } from "antd";
 import PopConfirmDelete from "../../components/common/PopConfirmDelete";
+import { useSelector } from "react-redux";
 import TableLoading from "../../components/admin/table/TableLoading";
-import TableNull from "../../components/admin/table/TableNull";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import DescriptionCell from "../../components/common/DescriptionCell";
-import { useSelector } from "react-redux";
 
-/* ---------- Gün Normalizasyonu ---------- */
-const normalizeDay = (v) => {
-  if (v == null) return null;
-  if (typeof v === "boolean") return null;
-
-  if (typeof v === "number") {
-    const s = String(v).trim();
-    return s.length > 1 ? s : null;
-  }
-
-  if (typeof v === "string") {
-    const s = v.trim();
-    if (!s) return null;
-    if (s === "true" || s === "false" || s === "0" || s === "1") return null;
-    return s;
-  }
-
-  if (typeof v === "object" && typeof v.toDate === "function") {
-    try {
-      return v.toDate().toLocaleDateString("tr-TR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return null;
-    }
-  }
-
-  if (
-    typeof v === "object" &&
-    "seconds" in v &&
-    "nanoseconds" in v &&
-    typeof v.seconds === "number"
-  ) {
-    const ms = v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
-    return new Date(ms).toLocaleDateString("tr-TR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  }
-
-  if (typeof v === "object") {
-    if (v.label) return normalizeDay(String(v.label));
-    if (v.name) return normalizeDay(String(v.name));
-    if (v.day) return normalizeDay(String(v.day));
-    const vals = Object.values(v);
-    if (vals.length === 1) return normalizeDay(vals[0]);
-  }
-
-  try {
-    const s = String(v).trim();
-    if (!s || s === "true" || s === "false" || s === "0" || s === "1") return null;
-    return s;
-  } catch {
-    return null;
-  }
-};
-
-const getDays = (obj) => {
-  const cand =
-    obj?.participationDay ??
-    obj?.participationDays ??
-    obj?.selectedDays ??
-    obj?.days ??
-    obj?.day ??
-    obj;
-
-  if (cand == null) return [];
-
-  let raw = [];
-
-  if (Array.isArray(cand)) {
-    raw = cand;
-  } else if (typeof cand === "object") {
-    const entries = Object.entries(cand);
-    const boolCount = entries.reduce(
-      (acc, [, val]) => acc + (typeof val === "boolean" ? 1 : 0),
-      0
-    );
-    if (entries.length > 0 && boolCount / entries.length >= 0.6) {
-      raw = entries.filter(([, val]) => val).map(([key]) => key);
-    } else {
-      raw = entries.map(([, val]) => val);
-    }
-  } else if (typeof cand === "string") {
-    raw = cand.split(",").map((s) => s.trim());
-  } else {
-    raw = [cand];
-  }
-
-  const cleaned = raw.map(normalizeDay).filter(Boolean);
-  return Array.from(new Set(cleaned));
-};
-
-const Partnerships = () => {
+const WebParticipant = () => {
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -136,25 +39,112 @@ const Partnerships = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const participantsPerPage = 15;
 
+  // Yeni: görünüm ve ayırıcı
+  const [viewMode, setViewMode] = useState("table"); // 'table' | 'inline'
+  const [delimiterKey, setDelimiterKey] = useState("tab"); // 'tab' | 'pipe'
+
   const adminInfo = useSelector((state) => state.user.adminInfo);
 
-  /* ---------- Fetch ---------- */
+  /* ---------------- Helpers: Day Normalizers ---------------- */
+  const normalizeDay = (v) => {
+    if (v == null) return null;
+
+    if (typeof v === "string") return v;
+    if (typeof v === "number") return String(v);
+
+    if (typeof v === "object" && typeof v.toDate === "function") {
+      try {
+        return v.toDate().toLocaleDateString("tr-TR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+      } catch {}
+    }
+
+    if (
+      typeof v === "object" &&
+      "seconds" in v &&
+      "nanoseconds" in v &&
+      typeof v.seconds === "number"
+    ) {
+      const ms = v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
+      return new Date(ms).toLocaleDateString("tr-TR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    }
+
+    if (typeof v === "object") {
+      if (v.label) return String(v.label);
+      if (v.name) return String(v.name);
+      if (v.day) return String(v.day);
+
+      const vals = Object.values(v);
+      if (vals.length === 1) return normalizeDay(vals[0]);
+    }
+
+    try {
+      return String(v);
+    } catch {
+      return null;
+    }
+  };
+
+  const getDays = (obj) => {
+    const cand =
+      obj?.participationDay ??
+      obj?.participationDays ??
+      obj?.selectedDays ??
+      obj?.days ??
+      obj?.day ??
+      obj;
+
+    if (cand == null) return [];
+
+    if (Array.isArray(cand)) {
+      return cand.map(normalizeDay).filter(Boolean);
+    }
+
+    if (typeof cand === "object") {
+      return Object.values(cand).map(normalizeDay).filter(Boolean);
+    }
+
+    if (typeof cand === "string") {
+      return cand
+        .split(",")
+        .map((s) => normalizeDay(s.trim()))
+        .filter(Boolean);
+    }
+
+    return [];
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const q = query(collection(db, "partnership"), orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map((d) => ({
-          id: d.id,
-          collection: "partnership",
-          ...d.data(),
-        }));
+        const collections = ["web_registered"];
+        let allData = [];
 
-        setParticipants(data);
-        setTypes([...new Set(data.map((d) => d.organizationType).filter(Boolean))]);
-        setCountries([...new Set(data.map((d) => d.organizationCountry).filter(Boolean))]);
+        for (const coll of collections) {
+          const q = query(collection(db, coll), orderBy("createdAt", "desc"));
+          const snapshot = await getDocs(q);
+          const data = snapshot.docs.map((docx) => ({
+            id: docx.id,
+            collection: coll,
+            ...docx.data(),
+          }));
+          allData = [...allData, ...data];
+        }
+
+        setParticipants(allData);
+        setTypes([...new Set(allData.map((d) => d.organizationType).filter(Boolean))]);
+        setCountries([
+          ...new Set(allData.map((d) => d.organizationCountry).filter(Boolean)),
+        ]);
         setParticipantTypes([
-          ...new Set(data.map((d) => d.participantType).filter(Boolean)),
+          ...new Set(allData.map((d) => d.participantType).filter(Boolean)),
         ]);
       } catch (err) {
         console.error("Veri çekme hatası", err);
@@ -168,10 +158,12 @@ const Partnerships = () => {
   }, []);
 
   useEffect(() => {
-    if (searchInput.trim() === "") setSearchQuery("");
+    if (searchInput.trim() === "") {
+      setSearchQuery("");
+    }
   }, [searchInput]);
 
-  /* ---------- Handlers ---------- */
+  /* ---------------- Handlers ---------------- */
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
     setCurrentPage(1);
@@ -182,12 +174,20 @@ const Partnerships = () => {
     setCurrentPage(1);
   };
 
-  const handleDelete = async (id, photoUrl, passportPhotoUrl) => {
+  const handleDelete = async (id, collectionName, photoUrl, passportPhotoUrl) => {
     try {
-      await deleteDoc(doc(db, "partnership", id));
-      if (photoUrl) await deleteObject(ref(storage, photoUrl));
-      if (passportPhotoUrl) await deleteObject(ref(storage, passportPhotoUrl));
-      setParticipants((prev) => prev.filter((p) => p.id !== id));
+      await deleteDoc(doc(db, collectionName, id));
+      if (photoUrl) {
+        const fileRef = ref(storage, photoUrl);
+        await deleteObject(fileRef);
+      }
+      if (passportPhotoUrl) {
+        const passportFileRef = ref(storage, passportPhotoUrl);
+        await deleteObject(passportFileRef);
+      }
+      setParticipants((prev) =>
+        prev.filter((p) => !(p.id === id && p.collection === collectionName))
+      );
       message.success("Başvuru başarıyla silindi.");
     } catch (error) {
       console.error("Silme hatası:", error);
@@ -195,9 +195,9 @@ const Partnerships = () => {
     }
   };
 
-  const handleNoteUpdate = async (id, note) => {
+  const handleNoteUpdate = async (id, collectionName, note) => {
     try {
-      const refDoc = doc(db, "partnership", id);
+      const refDoc = doc(db, collectionName, id);
       await updateDoc(refDoc, {
         adminNote: note,
         noteBy: adminInfo?.firstname || "Admin",
@@ -210,14 +210,12 @@ const Partnerships = () => {
     }
   };
 
-  /* ---------- Filter + Search ---------- */
+  /* ---------------- Filter + Search ---------------- */
   const filtered = participants.filter((p) => {
     const fullName = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
     const daysText = getDays(p).join(" ").toLowerCase();
-    const searchTarget = `${fullName} ${daysText} ${p.tcNo ?? ""} ${p.passportId ?? ""} ${
-      p.email ?? ""
-    } ${p.organization ?? ""}`.toLowerCase();
-    const searchMatch = searchTarget.includes(searchQuery.toLowerCase());
+    const searchTarget = `${fullName} ${daysText} ${p.tcNo ?? ""} ${p.passportId ?? ""}`.trim();
+    const searchMatch = searchTarget.includes((searchQuery || "").toLowerCase());
 
     return (
       searchMatch &&
@@ -233,7 +231,7 @@ const Partnerships = () => {
   const currentItems = filtered.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filtered.length / participantsPerPage);
 
-  /* ---------- Excel Export ---------- */
+  /* ---------------- Export ---------------- */
   const exportToExcel = () => {
     if (filtered.length === 0) {
       message.warning("Dışa aktarılacak veri bulunamadı.");
@@ -247,7 +245,6 @@ const Partnerships = () => {
         Soyad: p.lastName ?? "",
         "E-posta": p.email ?? "",
         Telefon: p.phone ?? "",
-        Yaş: p.age ?? "",
         "Görev/Unvan": p.jobTitle ?? "",
         "Kurum/Kuruluş": p.organization ?? "",
         "Kurum Türü": p.organizationType ?? "",
@@ -259,9 +256,10 @@ const Partnerships = () => {
         "Pasaport No": p.passportId ?? "",
         "Pasaport Veriliş Tarihi": p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "",
         "Pasaport Bitiş Tarihi": p.passportExpiry ? normalizeDay(p.passportExpiry) : "",
+        "Pasaport Fotoğrafı": p.passportPhotoUrl ?? "",
         "Katılım Günleri": days.length > 0 ? days.join(", ") : "—",
-        "Gönderim Tarihi": p.createdAt?.toDate?.()
-          ? p.createdAt.toDate().toLocaleString("tr-TR", {
+        "Gönderim Tarihi": p.createdAt
+          ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
               day: "numeric",
               month: "long",
               year: "numeric",
@@ -274,13 +272,92 @@ const Partnerships = () => {
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Ortaklıklar");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Katılımcılar");
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "Ortakliklar_FULL.xlsx");
+    saveAs(blob, "Katilimcilar_FULL.xlsx");
   };
 
-  /* ---------- UI (Redesign) ---------- */
+  /* ---------------- Inline formatter & copy helpers ---------------- */
+  const delimiter = delimiterKey === "tab" ? "\t" : " | ";
+
+  const inlineHeaders = [
+    "Ad",
+    "Soyad",
+    "E-posta",
+    "Telefon",
+    "Görev/Unvan",
+    "Kurum/Kuruluş",
+    "Kurum Türü",
+    "Ülke",
+    "Katılım Amacı",
+    "Katılımcı Tipi",
+    "T.C. Kimlik No",
+    "Doğum Tarihi",
+    "Pasaport No",
+    "Pasaport Veriliş",
+    "Pasaport Bitiş",
+    "Pasaport Fotoğrafı",
+    "Katılım Günleri",
+    "Gönderim Tarihi",
+  ];
+
+  const formatParticipantInline = (p) => {
+    const days = getDays(p);
+    const created = p.createdAt
+      ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—";
+
+    const row = [
+      p.firstName ?? "—",
+      p.lastName ?? "—",
+      p.email ?? "—",
+      p.phone ?? "—",
+      p.jobTitle ?? "—",
+      p.organization ?? "—",
+      p.organizationType ?? "—",
+      p.organizationCountry ?? "—",
+      (p.description ?? "—").toString().replace(/\s+/g, " ").trim(),
+      p.participantType ?? "—",
+      p.tcNo ?? "—",
+      p.birthDate ? normalizeDay(p.birthDate) : "—",
+      p.passportId ?? "—",
+      p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "—",
+      p.passportExpiry ? normalizeDay(p.passportExpiry) : "—",
+      p.passportPhotoUrl ?? "—",
+      days.length > 0 ? days.join("; ") : "—",
+      created,
+    ];
+
+    return row.join(delimiter);
+  };
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success("Kopyalandı.");
+    } catch {
+      message.warning("Tarayıcı kopyalama engelledi. Metni manuel seçip kopyalayın.");
+    }
+  };
+
+  const copyCurrentPage = () => {
+    const lines = currentItems.map(formatParticipantInline).join("\n");
+    copyText(lines);
+  };
+
+  const copyAllFiltered = () => {
+    const lines = filtered.map(formatParticipantInline).join("\n");
+    copyText(lines);
+  };
+
+  /* ---------------- UI ---------------- */
   return (
     <div className="rounded-2xl border border-emerald-100/60 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
       {/* Header */}
@@ -289,25 +366,56 @@ const Partnerships = () => {
         <div className="relative px-6 md:px-8 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-3 text-white">
             <div className="h-10 w-10 grid place-items-center rounded-xl bg-white/15 ring-1 ring-white/20">
-              <FaHandshake className="text-white text-lg" />
+              <FaUser className="text-white text-lg" />
             </div>
             <div>
-              <h2 className="text-xl md:text-2xl font-semibold">Ortaklık Başvuruları</h2>
+              <h2 className="text-xl md:text-2xl font-semibold">Katılımcılar</h2>
               <p className="text-white/80 text-sm">
                 Gösterilen <b>{filtered.length}</b> / Toplam <b>{participants.length}</b>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="primary"
-              icon={<FaFileExcel />}
-              className="!bg-white !text-emerald-700 !border-none !px-4 !h-10 hover:!bg-emerald-50"
-              onClick={exportToExcel}
-            >
-              Excel’e Aktar
-            </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Görünüm geçişi */}
+            <div className="flex items-center bg-white/15 rounded-xl overflow-hidden ring-1 ring-white/30">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`px-3 py-2 text-sm ${viewMode === "table" ? "bg-white text-emerald-700" : "text-white/90"}`}
+              >
+                Tablo
+              </button>
+              <button
+                onClick={() => setViewMode("inline")}
+                className={`px-3 py-2 text-sm ${viewMode === "inline" ? "bg-white text-emerald-700" : "text-white/90"}`}
+              >
+                Satır Satır
+              </button>
+            </div>
+
+            {/* Ayırıcı seçimi */}
+            <div className="flex items-center gap-2 bg-white/15 rounded-xl px-2 py-1 ring-1 ring-white/30">
+              <span className="text-white/90 text-sm">Ayırıcı:</span>
+              <select
+                value={delimiterKey}
+                onChange={(e) => setDelimiterKey(e.target.value)}
+                className="bg-transparent text-white text-sm focus:outline-none"
+              >
+                <option value="tab">Tab</option>
+                <option value="pipe">Dikey çizgi (|)</option>
+              </select>
+            </div>
+
+            <Tooltip title="Excel’e aktar">
+              <Button
+                type="primary"
+                icon={<FaFileExcel />}
+                className="!bg-white !text-emerald-700 !border-none !px-4 !h-10 hover:!bg-emerald-50"
+                onClick={exportToExcel}
+              >
+                Excel’e Aktar
+              </Button>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -341,20 +449,6 @@ const Partnerships = () => {
           {/* Filters */}
           <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-2">
             <select
-              name="participantType"
-              value={filters.participantType}
-              onChange={handleFilterChange}
-              className="h-10 rounded-xl border border-slate-200 bg-white px-3 focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-300"
-            >
-              <option value="Tümü">Tüm Katılımcı Tipleri</option>
-              {participantTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-
-            <select
               name="organizationType"
               value={filters.organizationType}
               onChange={handleFilterChange}
@@ -381,17 +475,47 @@ const Partnerships = () => {
                 </option>
               ))}
             </select>
+
+            <select
+              name="participantType"
+              value={filters.participantType}
+              onChange={handleFilterChange}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 focus:outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-300"
+            >
+              <option value="Tümü">Tüm Katılımcı Tipleri</option>
+              {participantTypes.map((pt) => (
+                <option key={pt} value={pt}>
+                  {pt}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Kopyalama butonları */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button onClick={copyCurrentPage} className="!h-9">
+            Bu Sayfadakileri Kopyala
+          </Button>
+          <Button onClick={copyAllFiltered} className="!h-9">
+            Filtrelenen Tümünü Kopyala
+          </Button>
+          <div className="text-xs text-slate-500 self-center">
+            İpucu: Ayırıcıyı “Tab” seçersen Excel/Sheets’e yapıştırma daha temiz olur.
           </div>
         </div>
       </div>
 
-      {/* Table */}
+      {/* CONTENT */}
       <div className="px-3 md:px-6 pb-6">
         {loading ? (
           <TableLoading />
-        ) : currentItems.length === 0 ? (
-          <TableNull text="Kayıt bulunamadı." />
-        ) : (
+        ) : filtered.length === 0 ? (
+          <div className="text-gray-500 px-3 py-10 text-center border border-dashed rounded-xl">
+            Kriterlere uygun katılımcı bulunamadı.
+          </div>
+        ) : viewMode === "table" ? (
+          /* Tablo görünümü */
           <>
             <div className="overflow-auto rounded-xl border border-slate-200">
               <table className="min-w-[1900px] w-full text-sm">
@@ -403,7 +527,6 @@ const Partnerships = () => {
                       "Soyad",
                       "E-posta",
                       "Telefon",
-                      "Yaş",
                       "Görev/Unvan",
                       "Kurum/Kuruluş",
                       "Kurum Türü",
@@ -418,6 +541,7 @@ const Partnerships = () => {
                       "Pasaport Fotoğrafı",
                       "Katılım Günleri",
                       "Gönderim Tarihi",
+                      "İşlemler",
                     ].map((h) => (
                       <th key={h} className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                         {h}
@@ -430,14 +554,13 @@ const Partnerships = () => {
                     const days = getDays(p);
                     return (
                       <tr
-                        key={p.id}
+                        key={`${p.collection}-${p.id}`}
                         className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/60 transition"
                       >
                         <td className="px-3 py-3">
                           {p.photoUrl ? (
                             <Image
                               src={p.photoUrl}
-                              alt={`${p.firstName ?? ""} ${p.lastName ?? ""}`}
                               width={40}
                               height={40}
                               className="h-10 w-10 object-cover rounded-full ring-2 ring-white shadow"
@@ -446,19 +569,15 @@ const Partnerships = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-
                         <td className="px-3 py-3 font-medium text-slate-800">{p.firstName ?? "—"}</td>
                         <td className="px-3 py-3">{p.lastName ?? "—"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">{p.email ?? "—"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">{p.phone ?? "—"}</td>
-                        <td className="px-3 py-3">{p.age ?? "—"}</td>
                         <td className="px-3 py-3">{p.jobTitle ?? "—"}</td>
                         <td className="px-3 py-3">{p.organization ?? "—"}</td>
                         <td className="px-3 py-3">{p.organizationType ?? "—"}</td>
                         <td className="px-3 py-3">{p.organizationCountry ?? "—"}</td>
-
                         <DescriptionCell text={p.description} />
-
                         <td className="px-3 py-3">{p.participantType ?? "—"}</td>
                         <td className="px-3 py-3">{p.tcNo ?? "—"}</td>
                         <td className="px-3 py-3">{p.birthDate ? normalizeDay(p.birthDate) : "—"}</td>
@@ -469,7 +588,6 @@ const Partnerships = () => {
                         <td className="px-3 py-3">
                           {p.passportExpiry ? normalizeDay(p.passportExpiry) : "—"}
                         </td>
-
                         <td className="px-3 py-3">
                           {p.passportPhotoUrl ? (
                             <Image
@@ -482,7 +600,6 @@ const Partnerships = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-
                         <td className="px-3 py-3">
                           {days.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
@@ -499,10 +616,9 @@ const Partnerships = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-
                         <td className="px-3 py-3 font-medium text-slate-700">
-                          {p.createdAt?.toDate?.()
-                            ? p.createdAt.toDate().toLocaleString("tr-TR", {
+                          {p.createdAt
+                            ? new Date(p.createdAt.toDate()).toLocaleString("tr-TR", {
                                 day: "numeric",
                                 month: "long",
                                 year: "numeric",
@@ -510,6 +626,21 @@ const Partnerships = () => {
                                 minute: "2-digit",
                               })
                             : "—"}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex flex-col gap-2">
+                            <PopConfirmDelete
+                              onConfirm={() =>
+                                handleDelete(p.id, p.collection, p.photoUrl, p.passportPhotoUrl)
+                              }
+                            />
+                            <textarea
+                              className="w-48 min-h-20 border border-slate-200 text-xs p-2 rounded-lg focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                              placeholder="Not yaz..."
+                              defaultValue={p.adminNote || ""}
+                              onBlur={(e) => handleNoteUpdate(p.id, p.collection, e.target.value)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -540,10 +671,52 @@ const Partnerships = () => {
               </nav>
             </div>
           </>
+        ) : (
+          /* Satır Satır (yan yana) görünüm */
+          <>
+            <div className="rounded-xl border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 px-4 py-2 text-xs text-slate-600">
+                Sütunlar: {inlineHeaders.join("  ·  ")}
+              </div>
+              <div className="max-h-[70vh] overflow-auto font-mono text-sm">
+                {currentItems.map((p) => (
+                  <div
+                    key={`${p.collection}-${p.id}`}
+                    className="px-4 py-2 border-b border-slate-100 hover:bg-emerald-50/40 cursor-text select-text"
+                    title="Seçip kopyalayabilirsiniz"
+                  >
+                    {formatParticipantInline(p)}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-center mt-5">
+              <nav className="inline-flex rounded-xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
+                {[...Array(totalPages)].map((_, i) => {
+                  const active = currentPage === i + 1;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`px-3.5 py-2 text-sm ${
+                        active
+                          ? "bg-emerald-600 text-white"
+                          : "bg-white text-slate-700 hover:bg-slate-50"
+                      } ${i !== totalPages - 1 ? "border-r border-slate-200" : ""}`}
+                    >
+                      {i + 1}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </>
         )}
       </div>
     </div>
   );
 };
 
-export default Partnerships;
+export default WebParticipant;

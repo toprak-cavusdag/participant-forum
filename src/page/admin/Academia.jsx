@@ -12,7 +12,6 @@ import { db, storage } from "../../config/firebase";
 import { FaSearch, FaHandshake, FaFileExcel } from "react-icons/fa";
 import { deleteObject, ref } from "firebase/storage";
 import { Image, message, Button } from "antd";
-import PopConfirmDelete from "../../components/common/PopConfirmDelete";
 import TableLoading from "../../components/admin/table/TableLoading";
 import TableNull from "../../components/admin/table/TableNull";
 import * as XLSX from "xlsx";
@@ -116,7 +115,7 @@ const getDays = (obj) => {
   return Array.from(new Set(cleaned));
 };
 
-const Partnerships = () => {
+const Academia = () => {
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -142,11 +141,11 @@ const Partnerships = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const q = query(collection(db, "partnership"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, "academics"), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map((d) => ({
           id: d.id,
-          collection: "partnership",
+          collection: "academics",
           ...d.data(),
         }));
 
@@ -184,7 +183,7 @@ const Partnerships = () => {
 
   const handleDelete = async (id, photoUrl, passportPhotoUrl) => {
     try {
-      await deleteDoc(doc(db, "partnership", id));
+      await deleteDoc(doc(db, "academics", id));
       if (photoUrl) await deleteObject(ref(storage, photoUrl));
       if (passportPhotoUrl) await deleteObject(ref(storage, passportPhotoUrl));
       setParticipants((prev) => prev.filter((p) => p.id !== id));
@@ -197,7 +196,7 @@ const Partnerships = () => {
 
   const handleNoteUpdate = async (id, note) => {
     try {
-      const refDoc = doc(db, "partnership", id);
+      const refDoc = doc(db, "academics", id);
       await updateDoc(refDoc, {
         adminNote: note,
         noteBy: adminInfo?.firstname || "Admin",
@@ -274,10 +273,10 @@ const Partnerships = () => {
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Ortaklıklar");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Akademisyenlar");
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "Ortakliklar_FULL.xlsx");
+    saveAs(blob, "Akademisyenler_FULL.xlsx");
   };
 
   /* ---------- UI (Redesign) ---------- */
@@ -292,7 +291,7 @@ const Partnerships = () => {
               <FaHandshake className="text-white text-lg" />
             </div>
             <div>
-              <h2 className="text-xl md:text-2xl font-semibold">Ortaklık Başvuruları</h2>
+              <h2 className="text-xl md:text-2xl font-semibold">Akademisyen Başvuruları</h2>
               <p className="text-white/80 text-sm">
                 Gösterilen <b>{filtered.length}</b> / Toplam <b>{participants.length}</b>
               </p>
@@ -546,4 +545,4 @@ const Partnerships = () => {
   );
 };
 
-export default Partnerships;
+export default Academia;
