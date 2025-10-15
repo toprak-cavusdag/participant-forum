@@ -45,12 +45,16 @@ const validateTCNo = (tcNo) => {
   return digits[10] === checkDigit11 && digits[9] === checkDigit10;
 };
 
-const validateCountryCode = (code, list) => list.some((c) => c.phoneCode === code);
+const validateCountryCode = (code, list) =>
+  list.some((c) => c.phoneCode === code);
 
 const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
   const { t, i18n } = useTranslation();
 
-  const eventDays = useMemo(() => t("form.eventDays", { returnObjects: true }) || [], [t]);
+  const eventDays = useMemo(
+    () => t("form.eventDays", { returnObjects: true }) || [],
+    [t]
+  );
 
   const countriesDict = t("countries", { returnObjects: true }) || {};
   const organizationTypes = useMemo(
@@ -129,11 +133,17 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
       const file = files?.[0];
       if (file) {
         if (!file.type.startsWith("image/")) {
-          toast.error(t("form.error.invalidImage") || "Lütfen geçerli bir görsel dosyası yükleyin (JPEG/PNG).");
+          toast.error(
+            t("form.error.invalidImage") ||
+              "Lütfen geçerli bir görsel dosyası yükleyin (JPEG/PNG)."
+          );
           return;
         }
         if (file.size > 5 * 1024 * 1024) {
-          toast.error(t("form.error.fileTooLarge") || "Dosya boyutu 5MB'tan küçük olmalıdır.");
+          toast.error(
+            t("form.error.fileTooLarge") ||
+              "Dosya boyutu 5MB'tan küçük olmalıdır."
+          );
           return;
         }
       }
@@ -172,7 +182,9 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
   const handleCodeBlur = () => {
     if (!formData.countryCode) return;
     if (!validateCountryCode(formData.countryCode, codeList)) {
-      toast.error(t("form.error.code") || "Lütfen geçerli bir ülke kodu seçin (örn: +90).");
+      toast.error(
+        t("form.error.code") || "Lütfen geçerli bir ülke kodu seçin (örn: +90)."
+      );
     }
   };
 
@@ -197,17 +209,23 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
 
   const validateTR = () => {
     if (!validateTCNo(formData.tcNo)) {
-      toast.error(t("form.error.tcno") || "Lütfen geçerli bir T.C. Kimlik Numarası girin.");
+      toast.error(
+        t("form.error.tcno") || "Lütfen geçerli bir T.C. Kimlik Numarası girin."
+      );
       return false;
     }
     if (!formData.birthDate) {
-      toast.error(t("form.error.birthDate") || "Lütfen bir doğum tarihi seçin.");
+      toast.error(
+        t("form.error.birthDate") || "Lütfen bir doğum tarihi seçin."
+      );
       return false;
     }
     const today = new Date();
     const birthDate = new Date(formData.birthDate);
     if (birthDate > today) {
-      toast.error(t("form.error.birthDateFuture") || "Doğum tarihi gelecekte olamaz.");
+      toast.error(
+        t("form.error.birthDateFuture") || "Doğum tarihi gelecekte olamaz."
+      );
       return false;
     }
     return true;
@@ -216,35 +234,54 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
   const validatePassport = () => {
     if (!/^[A-Za-z0-9]{6,20}$/.test(formData.passportId?.trim())) {
       toast.error(
-        t("form.error.passportId") || "Lütfen geçerli bir Pasaport ID girin (6–20 alfasayısal karakter)."
+        t("form.error.passportId") ||
+          "Lütfen geçerli bir Pasaport ID girin (6–20 alfasayısal karakter)."
       );
       return false;
     }
     if (!formData.passportIssueDate) {
-      toast.error(t("form.error.passportIssueDate") || "Lütfen pasaport veriliş tarihini seçin.");
+      toast.error(
+        t("form.error.passportIssueDate") ||
+          "Lütfen pasaport veriliş tarihini seçin."
+      );
       return false;
     }
     if (!formData.passportExpiry) {
-      toast.error(t("form.error.passportExpiry") || "Lütfen pasaport bitiş tarihini seçin.");
+      toast.error(
+        t("form.error.passportExpiry") ||
+          "Lütfen pasaport bitiş tarihini seçin."
+      );
       return false;
     }
     const today = new Date();
     const issueDate = new Date(formData.passportIssueDate);
     const expiryDate = new Date(formData.passportExpiry);
     if (issueDate > today) {
-      toast.error(t("form.error.passportIssueDateFuture") || "Pasaport veriliş tarihi gelecekte olamaz.");
+      toast.error(
+        t("form.error.passportIssueDateFuture") ||
+          "Pasaport veriliş tarihi gelecekte olamaz."
+      );
       return false;
     }
     if (expiryDate < today) {
-      toast.error(t("form.error.passportExpiryPast") || "Pasaport bitiş tarihi geçmişte olamaz.");
+      toast.error(
+        t("form.error.passportExpiryPast") ||
+          "Pasaport bitiş tarihi geçmişte olamaz."
+      );
       return false;
     }
     if (issueDate > expiryDate) {
-      toast.error(t("form.error.passportIssueAfterExpiry") || "Pasaport veriliş tarihi bitiş tarihinden sonra olamaz.");
+      toast.error(
+        t("form.error.passportIssueAfterExpiry") ||
+          "Pasaport veriliş tarihi bitiş tarihinden sonra olamaz."
+      );
       return false;
     }
     if (!formData.passportPhoto) {
-      toast.error(t("form.error.passportPhoto") || "Lütfen bir pasaport fotoğrafı yükleyin.");
+      toast.error(
+        t("form.error.passportPhoto") ||
+          "Lütfen bir pasaport fotoğrafı yükleyin."
+      );
       return false;
     }
     return true;
@@ -256,13 +293,18 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
     if (!formData.photo) return toast.error(t("form.error.photo"));
     if (!formData.countryCode) return toast.error(t("form.error.code"));
     if (!validateCountryCode(formData.countryCode, codeList))
-      return toast.error(t("form.error.code") || "Lütfen geçerli bir ülke kodu seçin (örn: +90).");
-    if (!formData.participantType) return toast.error(t("form.error.participantType"));
+      return toast.error(
+        t("form.error.code") || "Lütfen geçerli bir ülke kodu seçin (örn: +90)."
+      );
+    if (!formData.participantType)
+      return toast.error(t("form.error.participantType"));
     if (!formData.termsAccepted) return toast.error(t("form.error.terms"));
     if (!formData.organizationCountry)
       return toast.error(t("form.error.country") || "Lütfen bir ülke seçin.");
     if (!formData.selectedDays || formData.selectedDays.length === 0)
-      return toast.error(t("form.error.days") || "Lütfen en az bir katılım günü seçin.");
+      return toast.error(
+        t("form.error.days") || "Lütfen en az bir katılım günü seçin."
+      );
 
     if (inTR) {
       if (!validateTR()) return;
@@ -274,13 +316,19 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
     const toastId = toast.loading(t("form.loading"));
 
     try {
-      const imageRef = ref(storage, `photos/${Date.now()}-${formData.photo.name}`);
+      const imageRef = ref(
+        storage,
+        `photos/${Date.now()}-${formData.photo.name}`
+      );
       await uploadBytes(imageRef, formData.photo);
       const photoUrl = await getDownloadURL(imageRef);
 
       let passportPhotoUrl = null;
       if (!inTR && formData.passportPhoto) {
-        const passRef = ref(storage, `passports/${Date.now()}-${formData.passportPhoto.name}`);
+        const passRef = ref(
+          storage,
+          `passports/${Date.now()}-${formData.passportPhoto.name}`
+        );
         await uploadBytes(passRef, formData.passportPhoto);
         passportPhotoUrl = await getDownloadURL(passRef);
       }
@@ -436,7 +484,9 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   value={formData.countryCode}
                   onChange={handleChange}
                   onBlur={handleCodeBlur}
-                  placeholder={t("form.selectCode") || "Ülke kodu ara (örn: +90, Türkiye)"}
+                  placeholder={
+                    t("form.selectCode") || "Ülke kodu ara (örn: +90, Türkiye)"
+                  }
                   className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={loading}
                   required
@@ -464,13 +514,15 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               />
             </div>
             <p className="text-sm text-slate-600 mt-1">
-              {t("form.warning.enterPersonalPhone") || "Lütfen kişisel telefon numaranızı girin."}
+              {t("form.warning.enterPersonalPhone") ||
+                "Lütfen kişisel telefon numaranızı girin."}
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.birthDate") || "Doğum Tarihi"} <span className="text-red-500">*</span>
+              {t("form.birthDate") || "Doğum Tarihi"}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -482,7 +534,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             />
             <p className="text-sm text-slate-600 mt-1">
-              {t("form.warning.enterValidBirthDate") || "Lütfen doğru doğum tarihinizi girin."}
+              {t("form.warning.enterValidBirthDate") ||
+                "Lütfen doğru doğum tarihinizi girin."}
             </p>
           </div>
 
@@ -497,7 +550,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               disabled={loading}
             />
             <p className="text-sm text-slate-600 mt-1">
-              {t("form.warning.enterValidEmail") || "Lütfen onay için geçerli bir e-posta adresi girin."}
+              {t("form.warning.enterValidEmail") ||
+                "Lütfen onay için geçerli bir e-posta adresi girin."}
             </p>
           </div>
 
@@ -521,13 +575,17 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.organizationCountry")} <span className="text-red-500">*</span>
+              {t("form.organizationCountry")}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="organizationCountry"
               value={formData.organizationCountry}
               onChange={(e) =>
-                setFormData((p) => ({ ...p, organizationCountry: e.target.value }))
+                setFormData((p) => ({
+                  ...p,
+                  organizationCountry: e.target.value,
+                }))
               }
               className="w-full border border-gray-300 p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
               required
@@ -546,7 +604,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("form.organizationType")} <span className="text-red-500">*</span>
+              {t("form.organizationType")}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <select
               name="organizationType"
@@ -567,8 +626,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             </select>
           </div>
 
-          {/* Katılım Günleri (selectedDays) */}
-          <div className="md:col-span-2">
+          {/* <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.daysLabel") || "Katılım Günleri"} <span className="text-red-500">*</span>
             </label>
@@ -591,7 +649,7 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
             <p className="text-sm text-slate-600 mt-1">
               {t("form.warning.selectAtLeastOneDay") || "Lütfen en az bir katılım günü seçin."}
             </p>
-          </div>
+          </div> */}
 
           {/* Logo/Foto yükleme */}
           <div className="md:col-span-2">
@@ -602,14 +660,29 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               role="button"
               tabIndex={0}
               onKeyDown={(e) =>
-                (e.key === "Enter" || e.key === " ") && fileInputRef.current?.click()
+                (e.key === "Enter" || e.key === " ") &&
+                fileInputRef.current?.click()
               }
               onClick={() => fileInputRef.current?.click()}
-              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
-              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
-              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
+              }}
               onDrop={(e) => {
-                e.preventDefault(); e.stopPropagation(); setDragActive(false);
+                e.preventDefault();
+                e.stopPropagation();
+                setDragActive(false);
                 const files = e.dataTransfer?.files;
                 if (files && files.length) {
                   handleChange({ target: { name: "photo", files } });
@@ -624,7 +697,12 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 loading && "opacity-60 pointer-events-none",
               ].join(" ")}
             >
-              <FiUploadCloud size={48} className={`mb-3 ${dragActive ? "text-indigo-500" : "text-gray-400"}`} />
+              <FiUploadCloud
+                size={48}
+                className={`mb-3 ${
+                  dragActive ? "text-indigo-500" : "text-gray-400"
+                }`}
+              />
               <p className="text-sm sm:text-base font-medium text-gray-800">
                 {loading ? t("form.uploading") : t("form.uploadHint")}
               </p>
@@ -645,10 +723,15 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               )}
             </div>
             <p className="text-sm text-slate-600 mt-1">
-              {t("form.warning.uploadClearPhoto") || "Lütfen net ve güncel bir profil fotoğrafı yükleyin."}
+              {t("form.warning.uploadClearPhoto") ||
+                "Lütfen net ve güncel bir profil fotoğrafı yükleyin."}
             </p>
             {preview && (
-              <img src={preview} alt="Preview" className="mt-2 h-32 w-32 object-cover rounded border" />
+              <img
+                src={preview}
+                alt="Preview"
+                className="mt-2 h-32 w-32 object-cover rounded border"
+              />
             )}
           </div>
 
@@ -687,7 +770,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("form.passportIssueDate") || "Pasaport Veriliş Tarihi"} <span className="text-red-500">*</span>
+                  {t("form.passportIssueDate") || "Pasaport Veriliş Tarihi"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -705,7 +789,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("form.passportExpiry") || "Pasaport Bitiş Tarihi"} <span className="text-red-500">*</span>
+                  {t("form.passportExpiry") || "Pasaport Bitiş Tarihi"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -723,21 +808,41 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("form.passportPhoto") || "Pasaport Fotoğrafı"} <span className="text-red-500">*</span>
+                  {t("form.passportPhoto") || "Pasaport Fotoğrafı"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <div
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && passportFileInputRef.current?.click()}
+                  onKeyDown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    passportFileInputRef.current?.click()
+                  }
                   onClick={() => passportFileInputRef.current?.click()}
-                  onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
-                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); }}
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActive(true);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActive(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActive(false);
+                  }}
                   onDrop={(e) => {
-                    e.preventDefault(); e.stopPropagation(); setDragActive(false);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActive(false);
                     const files = e.dataTransfer?.files;
                     if (files && files.length) {
-                      handleChange({ target: { name: "passportPhoto", files } });
+                      handleChange({
+                        target: { name: "passportPhoto", files },
+                      });
                     }
                   }}
                   className={[
@@ -751,7 +856,8 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                 >
                   <FiUploadCloud size={40} className="mb-2 text-gray-400" />
                   <p className="text-sm sm:text-base font-medium text-gray-800">
-                    {t("form.uploadPassportHint") || "Pasaport görselini yüklemek için tıklayın (JPEG/PNG)."}
+                    {t("form.uploadPassportHint") ||
+                      "Pasaport görselini yüklemek için tıklayın (JPEG/PNG)."}
                   </p>
                   <input
                     ref={passportFileInputRef}
@@ -767,42 +873,52 @@ const PartnershipForum = ({ isSubmitted, setIsSubmitted }) => {
                   )}
                 </div>
                 <p className="text-sm text-slate-600 mt-1">
-                  {t("form.warning.uploadClearPassportPhoto") || "Lütfen pasaportunuzun net bir görselini yükleyin."}
+                  {t("form.warning.uploadClearPassportPhoto") ||
+                    "Lütfen pasaportunuzun net bir görselini yükleyin."}
                 </p>
                 {passportPreview && (
-                  <img src={passportPreview} alt="Passport Preview" className="mt-2 h-36 w-48 object-cover rounded border" />
+                  <img
+                    src={passportPreview}
+                    alt="Passport Preview"
+                    className="mt-2 h-36 w-48 object-cover rounded border"
+                  />
                 )}
               </div>
             </>
           )}
 
-<div className="md:col-span-2 flex items-start gap-4">
-  <input
-    type="checkbox"
-    name="termsAccepted"
-    checked={formData.termsAccepted}
-    onChange={handleChange}
-    className="checkbox-custom disabled:opacity-50 disabled:cursor-not-allowed"
-    disabled={loading}
-  />
-  <label className="text-sm text-gray-700 leading-5">
-    <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
-    <Link
-      to={i18n.language === "tr" ? "/zero-waste-kvkk" : "/zero-waste-gdpr"}
-      target="_blank"
-      className="text-emerald-600 underline text-sm"
-    >
-      {t("form.terms.link")}
-    </Link>
-  </label>
-</div>
-
+          <div className="md:col-span-2 flex items-start gap-4">
+            <input
+              type="checkbox"
+              name="termsAccepted"
+              checked={formData.termsAccepted}
+              onChange={handleChange}
+              className="checkbox-custom disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+            />
+            <label className="text-sm text-gray-700 leading-5">
+              <strong>{t("form.terms.label")}</strong> {t("form.terms.text")}{" "}
+              <Link
+                to={
+                  i18n.language === "tr"
+                    ? "/zero-waste-kvkk"
+                    : "/zero-waste-gdpr"
+                }
+                target="_blank"
+                className="text-emerald-600 underline text-sm"
+              >
+                {t("form.terms.link")}
+              </Link>
+            </label>
+          </div>
 
           <div className="md:col-span-2">
             <button
               type="submit"
               className={`w-full py-2 rounded transition ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
               } text-white`}
               disabled={loading}
             >

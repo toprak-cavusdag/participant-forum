@@ -462,7 +462,6 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             </p>
           </div>
 
-          {/* ✅ Telefon + Ülke Kodu (datalist ile aramalı) */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.phone")} <span className="text-red-500">*</span>
@@ -618,7 +617,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
             </select>
           </div>
 
-          {/* Katılım Günleri */}
+          {/* Katılım Günleri
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("form.daysLabel")} <span className="text-red-500">*</span>
@@ -643,7 +642,7 @@ const ParticipantForum = ({ isSubmitted, setIsSubmitted }) => {
               {t("form.warning.selectAtLeastOneDay") ||
                 "Please select at least one participation day."}
             </p>
-          </div>
+          </div> */}
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
