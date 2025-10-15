@@ -1,18 +1,13 @@
 // src/pages/admin/partners/SpecialPartners.jsx
 import { useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { Image, message, Button } from "antd";
 import { FaSearch, FaFileExcel, FaStar } from "react-icons/fa";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-/* ---------- Sabit Firma Listesi (görüntüleme & filtre başlıkları) ---------- */
+/* ---------- Sabit Firma Listesi ---------- */
 const SPECIAL_FIRMS = [
   "Turkcell",
   "Ziraat Bankası",
@@ -24,20 +19,18 @@ const SPECIAL_FIRMS = [
   "Revego",
 ];
 
-/* ---------- Alias'lar: Firestore'da farklı yazımlar için kapsama ---------- */
+/* ---------- Alias'lar ---------- */
 const ALIASES = {
-  "Turkcell": ["Turkcell"],
+  Turkcell: ["Turkcell"],
   "Ziraat Bankası": ["Ziraat Bankası", "Ziraat", "T.C. Ziraat Bankası", "TC Ziraat Bankası"],
-  "VakıfBank": ["VakıfBank", "Vakıf Bank", "Vakifbank", "Vakif Bank"],
-  "Halkbank": ["Halkbank", "T. Halk Bankası", "Türkiye Halk Bankası", "Halk Bankası"],
+  VakıfBank: ["VakıfBank", "Vakıf Bank", "Vakifbank", "Vakif Bank"],
+  Halkbank: ["Halkbank", "T. Halk Bankası", "Türkiye Halk Bankası", "Halk Bankası"],
   "Türk Telekom": ["Türk Telekom", "Turk Telekom", "TT"],
   "Türkiye Sigorta": ["Türkiye Sigorta"],
   "Türk Hava Yolları": ["Türk Hava Yolları", "THY", "Turkish Airlines"],
-  // Yeni: Revego alias'ları
-  "Revego": ["Revego", "REVEGO", "Revego Teknoloji", "Revego Technology", "Revego Tech"],
+  Revego: ["Revego", "REVEGO", "Revego Teknoloji", "Revego Technology", "Revego Tech"],
 };
 
-/* ---------- Alias listesini tek diziye indir, tekrarları kaldır ---------- */
 const FLATTENED = Array.from(new Set(Object.values(ALIASES).flat()));
 
 /* ---------- Yardımcılar ---------- */
@@ -61,50 +54,13 @@ const resolveFirm = (org) => {
 const normalizeDay = (v) => {
   if (v == null) return null;
   if (typeof v === "boolean") return null;
-  if (typeof v === "number") {
-    const s = String(v).trim();
-    return s.length > 1 ? s : null;
-  }
-  if (typeof v === "string") {
-    const s = v.trim();
-    if (!s) return null;
-    if (s === "true" || s === "false" || s === "0" || s === "1") return null;
-    return s;
-  }
-  if (typeof v === "object" && typeof v.toDate === "function") {
-    try {
-      return v.toDate().toLocaleDateString("tr-TR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-    } catch { return null; }
-  }
-  if (
-    typeof v === "object" &&
-    "seconds" in v &&
-    "nanoseconds" in v &&
-    typeof v.seconds === "number"
-  ) {
-    const ms = v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
-    return new Date(ms).toLocaleDateString("tr-TR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  }
-  if (typeof v === "object") {
-    if (v.label) return normalizeDay(String(v.label));
-    if (v.name) return normalizeDay(String(v.name));
-    if (v.day) return normalizeDay(String(v.day));
-    const vals = Object.values(v);
-    if (vals.length === 1) return normalizeDay(vals[0]);
-  }
-  try {
-    const s = String(v).trim();
-    if (!s || s === "true" || s === "false" || s === "0" || s === "1") return null;
-    return s;
-  } catch { return null; }
+  if (typeof v === "number") return String(v).trim();
+  if (typeof v === "string") return v.trim();
+  if (typeof v === "object" && typeof v.toDate === "function")
+    return v.toDate().toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  if (v?.seconds)
+    return new Date(v.seconds * 1000).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  return String(v).trim();
 };
 
 const getDays = (obj) => {
@@ -120,22 +76,18 @@ const getDays = (obj) => {
   if (Array.isArray(cand)) raw = cand;
   else if (typeof cand === "object") {
     const entries = Object.entries(cand);
-    const boolCount = entries.reduce((acc, [, val]) => acc + (typeof val === "boolean" ? 1 : 0), 0);
-    if (entries.length > 0 && boolCount / entries.length >= 0.6) {
-      raw = entries.filter(([, val]) => val).map(([key]) => key);
-    } else {
-      raw = entries.map(([, val]) => val);
-    }
-  } else if (typeof cand === "string") {
-    raw = cand.split(",").map((s) => s.trim());
-  } else raw = [cand];
-  const cleaned = raw.map(normalizeDay).filter(Boolean);
-  return Array.from(new Set(cleaned));
+    const boolCount = entries.reduce((a, [, v]) => a + (typeof v === "boolean" ? 1 : 0), 0);
+    if (boolCount / entries.length >= 0.6)
+      raw = entries.filter(([, v]) => v).map(([k]) => k);
+    else raw = entries.map(([, v]) => v);
+  } else if (typeof cand === "string") raw = cand.split(",").map((s) => s.trim());
+  else raw = [cand];
+  return Array.from(new Set(raw.map(normalizeDay).filter(Boolean)));
 };
 
 /* ---------- Component ---------- */
 export default function SpecialPartners() {
-  const [rows, setRows] = useState([]);            // tüm özel firmalar (alias çözülmüş)
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [firmFilter, setFirmFilter] = useState("Tümü");
   const [searchInput, setSearchInput] = useState("");
@@ -145,38 +97,26 @@ export default function SpecialPartners() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        // Firestore 'in' limiti 10 olduğu için alias listemizi 10'luk parçalara bölüyoruz
         const col = collection(db, "partnership");
         const parts = chunk(FLATTENED, 10);
         const allDocs = [];
-
         for (const values of parts) {
           const q = query(col, where("organization", "in", values));
           const snap = await getDocs(q);
           allDocs.push(...snap.docs);
         }
-
-        // Aynı belge iki parçada gelebilir, id bazında uniq al
         const uniqMap = new Map();
         for (const d of allDocs) uniqMap.set(d.id, d);
-
         const data = Array.from(uniqMap.values()).map((d) => {
           const raw = d.data();
           const canonical = resolveFirm(raw.organization);
-          return {
-            id: d.id,
-            ...raw,
-            _canonicalOrg: canonical || raw.organization || null,
-          };
+          return { id: d.id, ...raw, _canonicalOrg: canonical || raw.organization || null };
         });
-
-        // createdAt yoksa en sona düşecek şekilde client-side sort
         const sorted = data.sort((a, b) => {
-          const ta = a?.createdAt?.toDate?.() ? a.createdAt.toDate().getTime() : 0;
-          const tb = b?.createdAt?.toDate?.() ? b.createdAt.toDate().getTime() : 0;
+          const ta = a?.createdAt?.toDate?.()?.getTime?.() ?? 0;
+          const tb = b?.createdAt?.toDate?.()?.getTime?.() ?? 0;
           return tb - ta;
         });
-
         setRows(sorted);
       } catch (e) {
         console.error(e);
@@ -207,7 +147,6 @@ export default function SpecialPartners() {
       const orgName = p._canonicalOrg || p.organization;
       const matchFirm = firmFilter === "Tümü" ? true : orgName === firmFilter;
       if (!matchFirm) return false;
-
       if (!q) return true;
       const name = `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase();
       const daysText = getDays(p).join(" ").toLowerCase();
@@ -228,6 +167,7 @@ export default function SpecialPartners() {
         Firma: orgName ?? "",
         Ad: p.firstName ?? "",
         Soyad: p.lastName ?? "",
+        "T.C. Kimlik No": p.tcNo ?? "",
         "E-posta": p.email ?? "",
         Telefon: p.phone ?? "",
         Yaş: p.age ?? "",
@@ -236,7 +176,6 @@ export default function SpecialPartners() {
         Ülke: p.organizationCountry ?? "",
         "Katılım Amacı": p.description ?? "",
         "Katılımcı Tipi": p.participantType ?? "",
-        "T.C. Kimlik No": p.tcNo ?? "",
         "Doğum Tarihi": p.birthDate ? normalizeDay(p.birthDate) : "",
         "Pasaport No": p.passportId ?? "",
         "Pasaport Veriliş": p.passportIssueDate ? normalizeDay(p.passportIssueDate) : "",
@@ -257,8 +196,7 @@ export default function SpecialPartners() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Özel Firmalar");
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([buf], { type: "application/octet-stream" });
-    saveAs(blob, "Ozel_Firmalar.xlsx");
+    saveAs(new Blob([buf], { type: "application/octet-stream" }), "Ozel_Firmalar.xlsx");
   };
 
   return (
@@ -293,7 +231,6 @@ export default function SpecialPartners() {
 
       {/* Toolbar */}
       <div className="px-6 md:px-8 py-5 space-y-4">
-        {/* Firma filtre chip'leri */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setFirmFilter("Tümü")}
@@ -351,7 +288,7 @@ export default function SpecialPartners() {
           <div className="p-8 text-slate-500">Kayıt bulunamadı.</div>
         ) : (
           <div className="overflow-auto rounded-xl border border-slate-200">
-            <table className="min-w-[1500px] w-full text-sm">
+            <table className="min-w-[1600px] w-full text-sm">
               <thead className="bg-gradient-to-r from-emerald-50 to-teal-50 sticky top-0 z-10">
                 <tr className="text-slate-700">
                   {[
@@ -359,6 +296,7 @@ export default function SpecialPartners() {
                     "Fotoğraf",
                     "Ad",
                     "Soyad",
+                    "T.C. Kimlik No",
                     "E-posta",
                     "Telefon",
                     "Görev/Unvan",
@@ -379,9 +317,7 @@ export default function SpecialPartners() {
                   const orgName = p._canonicalOrg || p.organization;
                   return (
                     <tr key={p.id} className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/60 transition">
-                      <td className="px-3 py-3 font-medium text-emerald-700">
-                        {orgName ?? "—"}
-                      </td>
+                      <td className="px-3 py-3 font-medium text-emerald-700">{orgName ?? "—"}</td>
                       <td className="px-3 py-3">
                         {p.photoUrl ? (
                           <Image
@@ -397,6 +333,7 @@ export default function SpecialPartners() {
                       </td>
                       <td className="px-3 py-3 font-medium text-slate-800">{p.firstName ?? "—"}</td>
                       <td className="px-3 py-3">{p.lastName ?? "—"}</td>
+                      <td className="px-3 py-3 whitespace-nowrap">{p.tcNo ?? "—"}</td>
                       <td className="px-3 py-3 whitespace-nowrap">{p.email ?? "—"}</td>
                       <td className="px-3 py-3 whitespace-nowrap">{p.phone ?? "—"}</td>
                       <td className="px-3 py-3">{p.jobTitle ?? "—"}</td>

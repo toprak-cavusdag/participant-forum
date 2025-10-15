@@ -13,6 +13,8 @@ import WebParticipant from "./page/admin/WebParticipant";
 import PrivateSessions from "./page/admin/PrivateSessions";
 import Academia from "./page/admin/Academia";
 import Staff from "./page/admin/Staff";
+import CSB from "./page/admin/CSB";
+import Artists from "./page/admin/Artists";
 
 const App = () => {
   return (
@@ -42,6 +44,8 @@ const App = () => {
           <Route path="special-partnership" element={<SpecialPartners />} />
           <Route path="private-sessions" element={<PrivateSessions />} />
           <Route path="mihmandarlar" element={<Staff />} />
+          <Route path="artists" element={<Artists />} />
+          <Route path="cevre" element={<CSB />} />
           <Route path="*" element={<Partnerships />} />
         </Route>
       </Routes>

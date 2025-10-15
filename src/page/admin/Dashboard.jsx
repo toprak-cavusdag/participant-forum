@@ -1,6 +1,15 @@
-import { MdSchool } from "react-icons/md";
 import { Outlet, NavLink } from "react-router-dom";
-import { FaStar, FaUsers, FaHandshake, FaLock, FaUserTie } from "react-icons/fa";
+import {
+  FaStar,
+  FaUsers,
+  FaHandshake,
+  FaLock,
+  FaUserTie,
+  FaPalette,   // 🎨 Sanatçılar
+  FaGlobe,     // 🌐 Web Registered
+  FaLeaf       // 🍃 Çevre Bakanlığı
+} from "react-icons/fa";
+import { MdSchool } from "react-icons/md";
 import LogoutButton from "../../components/admin/LogoutButton";
 import NavbarWelcomer from "../../components/admin/NavbarWelcomer";
 
@@ -31,7 +40,7 @@ const DashboardLayout = () => {
                   }`
                 }
               >
-                <FaUsers className="text-xl" />
+                <FaGlobe className="text-xl" />
                 <span>Web Registered</span>
               </NavLink>
             </li>
@@ -84,7 +93,7 @@ const DashboardLayout = () => {
               </NavLink>
             </li>
 
-            {/* ✅ Mihmandarlar sekmesi eklendi */}
+            {/* ✅ Mihmandarlar */}
             <li>
               <NavLink
                 to="/dashboard/mihmandarlar"
@@ -130,6 +139,40 @@ const DashboardLayout = () => {
               >
                 <MdSchool className="text-xl" />
                 <span>Academics</span>
+              </NavLink>
+            </li>
+
+            {/* 🍃 Çevre Bakanlığı */}
+            <li>
+              <NavLink
+                to="/dashboard/cevre"
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 text-base font-medium rounded-lg px-3 py-2 transition-colors ${
+                    isActive
+                      ? "bg-emerald-50 text-emerald-500"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <FaLeaf className="text-xl" />
+                <span>Çevre Bakanlığı</span>
+              </NavLink>
+            </li>
+
+            {/* 🎨 Sanatçılar */}
+            <li>
+              <NavLink
+                to="/dashboard/artists"
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 text-base font-medium rounded-lg px-3 py-2 transition-colors ${
+                    isActive
+                      ? "bg-emerald-50 text-emerald-500"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <FaPalette className="text-xl" />
+                <span>Sanatçılar</span>
               </NavLink>
             </li>
           </ul>
